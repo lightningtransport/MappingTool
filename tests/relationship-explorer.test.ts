@@ -59,7 +59,41 @@ describe("relationship explorer SSR", () => {
     const html = renderToString(createElement(RelationshipExplorer, { data }));
 
     expect(html).toContain('<title id="graph-title">Relationships centered on TrucksDB</title>');
-    expect(html).toContain("<title>ninox: TrucksDB.Owner to Owner.Id</title>");
+    expect(html).toContain("<title>Ninox: TrucksDB.Owner to Owner.Id</title>");
     expect(html).not.toMatch(/<title[^>]*><\/title>/);
+  });
+
+  it("labels a broken Ninox target as unresolved rather than inferred", () => {
+    const unresolved = {
+      ...relationship,
+      targetTable: "Unknown",
+      targetTableId: "UC",
+      source: "unknown" as const,
+      confidence: 0,
+      provenance: "unresolved Ninox ref",
+    };
+    const unresolvedData: ExplorerData = {
+      ...data,
+      relationships: [unresolved],
+      shopMap: { ...data.shopMap, edges: [unresolved] },
+      quality: {
+        ...data.quality,
+        relationships: { confirmed: 0, detected: 0, unknown: 1 },
+        unresolvedReferences: [{
+          sourceTable: unresolved.sourceTable,
+          sourceTableId: unresolved.sourceTableId,
+          sourceField: unresolved.sourceField,
+          sourceFieldId: unresolved.sourceFieldId,
+          targetTableId: unresolved.targetTableId,
+          reason: "target-not-in-schema",
+        }],
+      },
+    };
+
+    const html = renderToString(createElement(RelationshipExplorer, { data: unresolvedData }));
+    expect(html).toContain("Review unresolved references");
+    expect(html).toContain("unresolved table <!-- -->UC");
+    expect(html).toContain("Broken Ninox reference");
+    expect(html).not.toContain("Hypothesis ·");
   });
 });

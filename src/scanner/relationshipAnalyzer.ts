@@ -16,6 +16,11 @@ export interface Relationship {
   reverseField: string;
   source: RelationshipSource;
   confidence: number;
+  metadata?: {
+    forwardType: "ref";
+    reverseType: "rev" | "Unknown";
+    reverseValidated: boolean;
+  };
 }
 
 export interface RelationshipResult {
@@ -49,25 +54,35 @@ function objects(value: unknown): UnknownObject[] {
 export function analyzeRelationships(table: NinoxTableSchema, tables: NinoxTableSchema[]): RelationshipResult {
   const tableId = text(table.id);
   const tableName = text(table.name);
-  const byId = new Map(tables.map((item) => [text(item.id), text(item.name)]));
+  const byId = new Map(tables.map((item) => [text(item.id), item]));
   const relationships: Relationship[] = [];
 
   for (const field of objects(table.fields)) {
     if (field.type !== "ref") continue;
     const targetId = text(field.referenceToTable);
-    const targetName = byId.get(targetId) ?? "Unknown";
-    const explicit = targetId !== "Unknown";
+    const target = byId.get(targetId);
+    const reverse = objects(target?.fields).find((candidate) => (
+      candidate.type === "rev"
+      && text(candidate.referenceFromTable) === tableId
+      && text(candidate.referenceFromField) === text(field.id)
+    ));
+    const resolved = targetId !== "Unknown" && Boolean(target);
     relationships.push({
       sourceTable: tableName,
       sourceTableId: tableId,
       sourceField: text(field.name),
       sourceFieldId: text(field.id),
-      targetTable: targetName,
+      targetTable: target ? text(target.name) : "Unknown",
       targetTableId: targetId,
       targetField: "id",
-      reverseField: text(field.reverseField),
-      source: explicit ? "ninox" : "unknown",
-      confidence: explicit ? 1 : 0,
+      reverseField: reverse ? text(reverse.id) : text(field.reverseField),
+      source: resolved ? "ninox" : "unknown",
+      confidence: resolved ? 1 : 0,
+      metadata: {
+        forwardType: "ref",
+        reverseType: reverse ? "rev" : "Unknown",
+        reverseValidated: Boolean(reverse),
+      },
     });
   }
 
@@ -102,7 +117,7 @@ export function detectRelationshipsFromSamples(
     const sample = samples.find((item) => item.tableId === sourceTableId);
     if (!sample) continue;
     for (const field of objects(table.fields)) {
-      if (field.type === "ref") continue;
+      if (field.type === "ref" || field.type === "rev") continue;
       const values = [...new Set(sample.records.flatMap((record) => scalarIds(asObject(record.fields)[String(field.name)])))];
       if (values.length < 2) continue;
       for (const target of tables) {

@@ -20,7 +20,12 @@ export async function loadExplorerData(): Promise<ExplorerData> {
   const relationships = relationshipArtifact.relationships.map((raw) => {
     const relationship = raw as Partial<ExplorerRelationship>;
     const source = relationship.source === "ninox" || relationship.source === "detected" || relationship.source === "unknown" ? relationship.source : "unknown";
-    return { ...relationship, source, provenance: source, raw } as ExplorerRelationship;
+    const metadata = raw.metadata as { reverseValidated?: boolean } | undefined;
+    const provenance = source === "ninox"
+      ? metadata?.reverseValidated ? "Ninox ref + rev" : "Ninox ref"
+      : source === "detected" ? "sample overlap"
+      : "unresolved Ninox ref";
+    return { ...relationship, source, provenance, raw } as ExplorerRelationship;
   });
   const counts = relationshipCounts(relationships);
   return {

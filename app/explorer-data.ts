@@ -21,7 +21,7 @@ export interface ExplorerRelationship {
   reverseField: string;
   source: RelationshipSource;
   confidence: number;
-  provenance: RelationshipSource;
+  provenance: string;
   raw: Record<string, unknown>;
 }
 
