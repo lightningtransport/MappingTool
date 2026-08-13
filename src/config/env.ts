@@ -21,7 +21,9 @@ export function loadEnvironment(): void {
   loadDotenv({ path: resolve(process.cwd(), ".env.local"), quiet: true });
 }
 
-function required(name: string, env: NodeJS.ProcessEnv): string {
+type Environment = Record<string, string | undefined>;
+
+function required(name: string, env: Environment): string {
   const value = env[name]?.trim();
   if (!value) {
     throw new ConfigError(`Missing required environment variable: ${name}`);
@@ -29,7 +31,7 @@ function required(name: string, env: NodeJS.ProcessEnv): string {
   return value;
 }
 
-function positiveInteger(name: string, fallback: number, env: NodeJS.ProcessEnv): number {
+function positiveInteger(name: string, fallback: number, env: Environment): number {
   const raw = env[name]?.trim();
   if (!raw) return fallback;
   const value = Number(raw);
@@ -39,7 +41,7 @@ function positiveInteger(name: string, fallback: number, env: NodeJS.ProcessEnv)
   return value;
 }
 
-export function getNinoxConfig(env: NodeJS.ProcessEnv = process.env): NinoxConfig {
+export function getNinoxConfig(env: Environment = process.env): NinoxConfig {
   const baseUrl = required("NINOX_BASE_URL", env).replace(/\/+$/, "");
   let parsed: URL;
   try {
