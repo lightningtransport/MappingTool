@@ -8,6 +8,10 @@ const edges = [
 ] as ExplorerRelationship[];
 
 describe("explorer relationship logic", () => {
+  it("keeps all relationships as the complete database scope and exact edges in the secondary scope", () => {
+    expect(scopedRelationships("all", edges, [edges[0]!])).toEqual(edges);
+    expect(scopedRelationships("shop", edges, [edges[0]!])).toEqual([edges[0]]);
+  });
   it("counts every relationship at both endpoints", () => {
     expect(Object.fromEntries(relationshipCounts(edges))).toEqual({ A: 2, B: 2, C: 2 });
   });
