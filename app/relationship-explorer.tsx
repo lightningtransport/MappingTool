@@ -1,98 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ShopMapData } from "./types.js";
+import { filterRelationships, scopedRelationships, type Direction, type ExplorerData, type ExplorerRelationship, type RelationshipSource } from "./explorer-data.js";
 
-type Edge = ShopMapData["edges"][number];
-
-export default function RelationshipExplorer({ map }: { map: ShopMapData }) {
+export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   const [query, setQuery] = useState("");
-  const [selectedTable, setSelectedTable] = useState(map.anchor.tableId);
-  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
-  const [showAllTables, setShowAllTables] = useState(false);
+  const [scope, setScope] = useState<"shop" | "all">("shop");
+  const [source, setSource] = useState<RelationshipSource | "all">("all");
+  const [direction, setDirection] = useState<Direction>("all");
+  const [selectedTable, setSelectedTable] = useState(data.shopMap.anchor.tableId);
+  const [selectedEdge, setSelectedEdge] = useState<ExplorerRelationship | null>(null);
   const normalizedQuery = query.trim().toLowerCase();
-  const tableCatalog = showAllTables ? map.allTables : map.nodes.map((node) => ({ ...node, relationshipCount: map.edges.filter((edge) => edge.sourceTableId === node.tableId || edge.targetTableId === node.tableId).length }));
+  const scopeIds = useMemo(() => new Set(data.shopMap.nodes.map((node) => node.tableId)), [data.shopMap.nodes]);
+  const tables = data.tables.filter((table) => scope === "all" || scopeIds.has(table.id));
+  const visibleTables = tables.filter((table) => !normalizedQuery || `${table.name} ${table.id}`.toLowerCase().includes(normalizedQuery));
+  const relationships = scopedRelationships(scope, data.relationships, data.shopMap.edges);
+  const visibleEdges = useMemo(() => filterRelationships(relationships, source, direction, selectedTable), [direction, relationships, selectedTable, source]);
+  const selectedNode = data.tables.find((table) => table.id === selectedTable) ?? data.tables[0];
+  const sourceCounts = { ninox: data.relationships.filter((edge) => edge.source === "ninox").length, detected: data.relationships.filter((edge) => edge.source === "detected").length, unknown: data.relationships.filter((edge) => edge.source === "unknown").length };
 
-  const filteredNodes = useMemo(() => tableCatalog.filter((node) =>
-    !normalizedQuery || `${node.tableName} ${node.tableId}`.toLowerCase().includes(normalizedQuery),
-  ), [tableCatalog, normalizedQuery]);
-
-  const visibleEdges = useMemo(() => map.edges.filter((edge) =>
-    edge.sourceTableId === selectedTable || edge.targetTableId === selectedTable,
-  ), [map.edges, selectedTable]);
-
-  const selectedNode = tableCatalog.find((node) => node.tableId === selectedTable) ?? tableCatalog[0];
-  const counts = {
-    ninox: map.edges.filter((edge) => edge.source === "ninox").length,
-    detected: map.edges.filter((edge) => edge.source === "detected").length,
-    unknown: map.edges.filter((edge) => edge.source === "unknown").length,
-  };
-
-  return (
-    <main className="shell">
-      <header className="topbar">
-        <div>
-          <div className="eyebrow">NINOX DATA MAPPER / P0</div>
-          <h1>Relationship Explorer</h1>
-          <p className="subhead">Explore the real Shop data map discovered from Ninox.</p>
-        </div>
-        <div className="readonly"><span className="status-dot" /> READ ONLY</div>
-      </header>
-
-      <section className="hero-grid">
-        <div className="anchor-card">
-          <div className="card-label">ANCHOR TABLE</div>
-          <div className="anchor-name">{map.anchor.tableName}</div>
-          <div className="anchor-id">ID / {map.anchor.tableId}</div>
-          <div className="anchor-note">Primary discovery point for the Shop map</div>
-        </div>
-        <div className="metric-card"><span>TABLES</span><strong>{map.allTables.length}</strong><small>{map.nodes.length} connected to anchor</small></div>
-        <div className="metric-card"><span>RELATIONSHIPS</span><strong>{map.edges.length}</strong><small>explicit + detected</small></div>
-        <div className="metric-card"><span>HYPOTHESES</span><strong className="amber">{map.hypotheses.length}</strong><small>require review</small></div>
-      </section>
-
-      <section className="workspace">
-        <aside className="sidebar">
-          <div className="section-heading"><span>{showAllTables ? "ALL TABLES" : "SHOP MAP"}</span><em>{tableCatalog.length}</em></div>
-          <input aria-label="Search tables" placeholder="Search tables..." value={query} onChange={(event) => setQuery(event.target.value)} />
-          <button className="scope-toggle" onClick={() => setShowAllTables((value) => !value)}>{showAllTables ? "Show Shop map only" : `Show all ${map.allTables.length} tables`}</button>
-          <div className="table-list">
-            {filteredNodes.map((node) => (
-              <button className={`table-row ${selectedTable === node.tableId ? "active" : ""}`} key={node.tableId} onClick={() => { setSelectedTable(node.tableId); setSelectedEdge(null); }}>
-                <span className={("role" in node && node.role === "anchor") ? "node-mark anchor-mark" : "node-mark"} />
-                <span><b>{node.tableName}</b><small>{node.tableId} · {node.relationshipCount} relation{node.relationshipCount === 1 ? "" : "s"}</small></span>
-                <span className="chevron">›</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <section className="content">
-          <div className="content-header">
-            <div><div className="card-label">SELECTED TABLE</div><h2>{selectedNode?.tableName ?? "Unknown"}</h2><span className="pill">ID {selectedNode?.tableId}</span></div>
-            <div className="legend"><span><i className="legend-dot green" /> Ninox relation <b>{counts.ninox}</b></span><span><i className="legend-dot amber-dot" /> Detected <b>{counts.detected}</b></span><span><i className="legend-dot gray" /> Unknown <b>{counts.unknown}</b></span></div>
-          </div>
-
-          <div className="relation-list">
-            {visibleEdges.length === 0 && <div className="empty">No relationships found for this table.</div>}
-            {visibleEdges.map((edge, index) => {
-              const outgoing = edge.sourceTableId === selectedTable;
-              const otherTable = outgoing ? edge.targetTable : edge.sourceTable;
-              return <button className={`relation-card ${selectedEdge === edge ? "selected" : ""}`} key={`${edge.sourceTableId}-${edge.sourceFieldId}-${edge.targetTableId}-${index}`} onClick={() => setSelectedEdge(edge)}>
-                <div className="relation-direction"><span className={edge.source === "ninox" ? "relation-icon green-bg" : "relation-icon amber-bg"}>{edge.source === "ninox" ? "✓" : "•"}</span><span>{outgoing ? "OUTGOING" : "INCOMING"}</span></div>
-                <div className="relation-main"><strong>{outgoing ? edge.sourceField : edge.sourceTable}</strong><span className="arrow">{outgoing ? "→" : "←"}</span><strong>{otherTable}</strong></div>
-                <div className="relation-meta"><span>{edge.source === "ninox" ? "Ninox Relation" : "Detected Relation"}</span><span>confidence {Math.round(edge.confidence * 100)}%</span></div>
-              </button>;
-            })}
-          </div>
-
-          <div className="detail-panel">
-            <div className="card-label">RELATIONSHIP DETAIL</div>
-            {selectedEdge ? <><div className="detail-title">{selectedEdge.sourceTable}.{selectedEdge.sourceField} <span>→</span> {selectedEdge.targetTable}.id</div><div className="detail-grid"><div><span>SOURCE</span><b>{selectedEdge.source === "ninox" ? "✓ Ninox Relation" : "• Detected Relation"}</b></div><div><span>FIELD IDS</span><b>{selectedEdge.sourceFieldId} → id</b></div><div><span>REVERSE FIELD</span><b>{selectedEdge.reverseField}</b></div><div><span>CONFIDENCE</span><b>{Math.round(selectedEdge.confidence * 100)}%</b></div></div>{selectedEdge.source !== "ninox" && <p className="warning">This is a technical hypothesis based on sampled IDs. It is not confirmed by Ninox metadata.</p>}</> : <p className="muted">Select a relationship to inspect its source, target, reverse field, and confidence.</p>}
-          </div>
-        </section>
-      </section>
-      <footer><span>Generated {map.generatedAt === new Date(0).toISOString() ? "No scan loaded" : map.generatedAt}</span><span>Data Mapper P0 · local artifact</span></footer>
-    </main>
-  );
+  return <main className="shell">
+    <header className="topbar"><div><div className="eyebrow">NINOX DATA MAPPER / P0</div><h1>Relationship Explorer</h1><p className="subhead">Browse the complete local scan and keep Shop as a quick scope.</p></div><div className="readonly"><span className="status-dot" /> READ ONLY</div></header>
+    <section className="hero-grid"><div className="anchor-card"><div className="card-label">ANCHOR TABLE</div><div className="anchor-name">{data.shopMap.anchor.tableName}</div><div className="anchor-id">ID / {data.shopMap.anchor.tableId}</div><div className="anchor-note">Shop map quick scope</div></div><div className="metric-card"><span>TABLES</span><strong>{data.summary.tableCount}</strong><small>all scanned tables</small></div><div className="metric-card"><span>RELATIONSHIPS</span><strong>{data.summary.relationshipCount}</strong><small>global graph edges</small></div><div className="metric-card"><span>HYPOTHESES</span><strong className="amber">{sourceCounts.detected}</strong><small>detected, review required</small></div></section>
+    <section className="workspace"><aside className="sidebar"><div className="section-heading"><span>{scope === "all" ? "ALL TABLES" : "SHOP MAP"}</span><em>{visibleTables.length} / {tables.length}</em></div><input aria-label="Search tables" placeholder="Search tables..." value={query} onChange={(event) => setQuery(event.target.value)} /><button className="scope-toggle" onClick={() => { const nextScope = scope === "all" ? "shop" : "all"; setScope(nextScope); if (nextScope === "shop" && !scopeIds.has(selectedTable)) setSelectedTable(data.shopMap.anchor.tableId); setSelectedEdge(null); }}>{scope === "all" ? "Show Shop map only" : `Browse all ${data.tables.length} tables`}</button><div className="table-list">{visibleTables.map((table) => <button className={`table-row ${selectedTable === table.id ? "active" : ""}`} key={table.id} onClick={() => { setSelectedTable(table.id); setSelectedEdge(null); }}><span className="node-mark" /><span><b>{table.name}</b><small>{table.id} · {table.relationshipCount} relationship{table.relationshipCount === 1 ? "" : "s"}</small></span><span className="chevron">›</span></button>)}</div></aside>
+      <section className="content"><div className="content-header"><div><div className="card-label">SELECTED TABLE</div><h2>{selectedNode?.name ?? "Unknown"}</h2><span className="pill">ID {selectedNode?.id}</span></div><div className="legend"><span><i className="legend-dot green" /> Ninox <b>{sourceCounts.ninox}</b></span><span><i className="legend-dot amber-dot" /> Detected <b>{sourceCounts.detected}</b></span><span><i className="legend-dot gray" /> Unknown <b>{sourceCounts.unknown}</b></span></div></div>
+        <div className="filters"><label>Source <select aria-label="Source filter" value={source} onChange={(event) => setSource(event.target.value as RelationshipSource | "all")}><option value="all">All</option><option value="ninox">Ninox</option><option value="detected">Detected</option><option value="unknown">Unknown</option></select></label><label>Direction <select aria-label="Direction filter" value={direction} onChange={(event) => setDirection(event.target.value as Direction)}><option value="all">All</option><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option></select></label></div>
+        <div className="relation-list">{visibleEdges.length === 0 && <div className="empty">No relationships match these filters.</div>}{visibleEdges.map((edge, index) => <button className={`relation-card ${selectedEdge === edge ? "selected" : ""}`} key={`${edge.sourceTableId}-${edge.sourceFieldId}-${edge.targetTableId}-${index}`} onClick={() => setSelectedEdge(edge)}><div className="relation-direction"><span className={`relation-icon ${edge.source === "ninox" ? "green-bg" : "amber-bg"}`}>{edge.source === "ninox" ? "✓" : "•"}</span><span>{edge.sourceTableId === selectedTable ? "OUTGOING" : "INCOMING"}</span></div><div className="relation-main"><strong>{edge.sourceTable}.{edge.sourceField}</strong><span className="arrow">→</span><strong>{edge.targetTable}.{edge.targetField}</strong></div><div className="relation-meta"><span>{edge.source === "detected" ? "Hypothesis" : edge.source}</span><span>{Math.round(edge.confidence * 100)}% confidence</span></div></button>)}</div>
+        <div className="detail-panel"><div className="card-label">RELATIONSHIP DETAIL</div>{selectedEdge ? <><div className="detail-title">{selectedEdge.sourceTable}.{selectedEdge.sourceField} <span>→</span> {selectedEdge.targetTable}.{selectedEdge.targetField}</div><div className="detail-grid"><div><span>SOURCE FIELD</span><b>{selectedEdge.sourceField} ({selectedEdge.sourceFieldId})</b></div><div><span>TARGET</span><b>{selectedEdge.targetTable}.{selectedEdge.targetField}</b></div><div><span>REVERSE FIELD</span><b>{selectedEdge.reverseField}</b></div><div><span>CONFIDENCE / PROVENANCE</span><b>{Math.round(selectedEdge.confidence * 100)}% · {selectedEdge.provenance}</b></div></div>{selectedEdge.source !== "ninox" && <p className="warning">Hypothesis: detected from scan evidence; not confirmed by Ninox metadata.</p>}</> : <p className="muted">Select a relationship to inspect its fields, confidence, and provenance.</p>}</div>
+      </section></section><footer><span>Generated {data.generatedAt}</span><span>Data Mapper P0 · local artifact</span></footer>
+  </main>;
 }
