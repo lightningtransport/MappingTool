@@ -9,17 +9,19 @@ export default function RelationshipExplorer({ map }: { map: ShopMapData }) {
   const [query, setQuery] = useState("");
   const [selectedTable, setSelectedTable] = useState(map.anchor.tableId);
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
+  const [showAllTables, setShowAllTables] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
+  const tableCatalog = showAllTables ? map.allTables : map.nodes.map((node) => ({ ...node, relationshipCount: map.edges.filter((edge) => edge.sourceTableId === node.tableId || edge.targetTableId === node.tableId).length }));
 
-  const filteredNodes = useMemo(() => map.nodes.filter((node) =>
+  const filteredNodes = useMemo(() => tableCatalog.filter((node) =>
     !normalizedQuery || `${node.tableName} ${node.tableId}`.toLowerCase().includes(normalizedQuery),
-  ), [map.nodes, normalizedQuery]);
+  ), [tableCatalog, normalizedQuery]);
 
   const visibleEdges = useMemo(() => map.edges.filter((edge) =>
     edge.sourceTableId === selectedTable || edge.targetTableId === selectedTable,
   ), [map.edges, selectedTable]);
 
-  const selectedNode = map.nodes.find((node) => node.tableId === selectedTable) ?? map.nodes[0];
+  const selectedNode = tableCatalog.find((node) => node.tableId === selectedTable) ?? tableCatalog[0];
   const counts = {
     ninox: map.edges.filter((edge) => edge.source === "ninox").length,
     detected: map.edges.filter((edge) => edge.source === "detected").length,
@@ -44,20 +46,21 @@ export default function RelationshipExplorer({ map }: { map: ShopMapData }) {
           <div className="anchor-id">ID / {map.anchor.tableId}</div>
           <div className="anchor-note">Primary discovery point for the Shop map</div>
         </div>
-        <div className="metric-card"><span>TABLES</span><strong>{map.nodes.length}</strong><small>connected to anchor</small></div>
+        <div className="metric-card"><span>TABLES</span><strong>{map.allTables.length}</strong><small>{map.nodes.length} connected to anchor</small></div>
         <div className="metric-card"><span>RELATIONSHIPS</span><strong>{map.edges.length}</strong><small>explicit + detected</small></div>
         <div className="metric-card"><span>HYPOTHESES</span><strong className="amber">{map.hypotheses.length}</strong><small>require review</small></div>
       </section>
 
       <section className="workspace">
         <aside className="sidebar">
-          <div className="section-heading"><span>TABLES</span><em>{map.nodes.length}</em></div>
+          <div className="section-heading"><span>{showAllTables ? "ALL TABLES" : "SHOP MAP"}</span><em>{tableCatalog.length}</em></div>
           <input aria-label="Search tables" placeholder="Search tables..." value={query} onChange={(event) => setQuery(event.target.value)} />
+          <button className="scope-toggle" onClick={() => setShowAllTables((value) => !value)}>{showAllTables ? "Show Shop map only" : `Show all ${map.allTables.length} tables`}</button>
           <div className="table-list">
             {filteredNodes.map((node) => (
               <button className={`table-row ${selectedTable === node.tableId ? "active" : ""}`} key={node.tableId} onClick={() => { setSelectedTable(node.tableId); setSelectedEdge(null); }}>
-                <span className={node.role === "anchor" ? "node-mark anchor-mark" : "node-mark"} />
-                <span><b>{node.tableName}</b><small>{node.tableId}</small></span>
+                <span className={("role" in node && node.role === "anchor") ? "node-mark anchor-mark" : "node-mark"} />
+                <span><b>{node.tableName}</b><small>{node.tableId} · {node.relationshipCount} relation{node.relationshipCount === 1 ? "" : "s"}</small></span>
                 <span className="chevron">›</span>
               </button>
             ))}
