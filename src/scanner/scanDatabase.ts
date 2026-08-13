@@ -2,7 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { ReadOnlyNinoxClient } from "../ninox/client.js";
 import type { NinoxRecord, NinoxTableSchema } from "../ninox/types.js";
-import { analyzeRelationships, type RelationshipResult } from "./relationshipAnalyzer.js";
+import { analyzeRelationships, detectRelationshipsFromSamples, type RelationshipResult } from "./relationshipAnalyzer.js";
 
 export interface DatabaseScanResult {
   scannedAt: string;
@@ -42,7 +42,7 @@ export async function scanDatabase(client: ReadOnlyNinoxClient, concurrency = 5)
       return table;
     }
   });
-  const relationships = inspected.reduce<RelationshipResult>(
+  const declaredRelationships = inspected.reduce<RelationshipResult>(
     (result, table) => {
       const current = analyzeRelationships(table, inspected);
       result.relationships.push(...current.relationships);
@@ -62,6 +62,21 @@ export async function scanDatabase(client: ReadOnlyNinoxClient, concurrency = 5)
       return [] as NinoxRecord[];
     }
   });
+  const samples = inspected.map((table, index) => ({
+    tableId: typeof table.id === "string" ? table.id : "Unknown",
+    tableName: typeof table.name === "string" ? table.name : "Unknown",
+    records: sampleResults[index] ?? [],
+  }));
+  const detectedRelationships = detectRelationshipsFromSamples(inspected, samples);
+  const relationships: RelationshipResult = {
+    scannedAt: new Date().toISOString(),
+    relationships: [...declaredRelationships.relationships, ...detectedRelationships.relationships],
+    counts: {
+      ninox: declaredRelationships.counts.ninox,
+      detected: detectedRelationships.counts.detected,
+      unknown: declaredRelationships.counts.unknown,
+    },
+  };
   return {
     scannedAt: new Date().toISOString(),
     tableCount: inspected.length,
@@ -70,11 +85,7 @@ export async function scanDatabase(client: ReadOnlyNinoxClient, concurrency = 5)
     relationships,
     errors,
     sampledRecords: sampleResults.reduce((count, records) => count + records.length, 0),
-    samples: inspected.map((table, index) => ({
-      tableId: typeof table.id === "string" ? table.id : "Unknown",
-      tableName: typeof table.name === "string" ? table.name : "Unknown",
-      records: sampleResults[index] ?? [],
-    })),
+    samples,
   };
 }
 
