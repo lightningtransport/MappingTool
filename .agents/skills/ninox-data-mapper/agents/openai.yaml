@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ninox Data Mapper"
+  short_description: "Descubre estructuras Ninox en modo read-only"
+  default_prompt: "Use $ninox-data-mapper to inspect Ninox safely and continue the P0 discovery workflow."

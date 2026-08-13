@@ -1,0 +1,33 @@
+{
+  "name": "ninox-data-mapper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:connection": "node --import tsx src/cli/testConnection.ts",
+    "discover:tables": "node --import tsx src/cli/discoverTables.ts",
+    "inspect:trucksdb": "node --import tsx src/cli/inspectTrucksDb.ts",
+    "sample:trucksdb": "node --import tsx src/cli/sampleTrucksDb.ts",
+    "inspect:metadata": "node --import tsx src/cli/inspectMetadata.ts",
+    "discover:relationships": "node --import tsx src/cli/discoverRelationships.ts",
+    "scan": "node --import tsx src/cli/scanDatabase.ts",
+    "agent:loop": "node --import tsx src/agents/runner.ts",
+    "import:env": "node scripts/import-ninox-env.mjs"
+  },
+  "dependencies": {
+    "axios": "^1.11.0",
+    "dotenv": "^17.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.2.1",
+    "tsx": "^4.20.3",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
