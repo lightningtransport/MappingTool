@@ -5,6 +5,9 @@ import { relationshipCounts, type ExplorerData, type ExplorerRelationship } from
 import type { ShopMapData } from "./types.js";
 import type { DataQualityReport } from "../src/scanner/dataQuality.js";
 
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
 async function readJson<T>(relativePath: string): Promise<T> {
   return JSON.parse(await readFile(resolve(process.cwd(), relativePath), "utf8")) as T;
 }

@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { filterRelationships, scopedRelationships, type Direction, type ExplorerData, type ExplorerRelationship, type RelationshipSource } from "./explorer-data.js";
 import { relationshipGraph } from "./relationship-graph-model.js";
+import RescanControl from "./rescan-control.js";
 
 export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   const [query, setQuery] = useState("");
@@ -23,7 +24,7 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   const graph = useMemo(() => relationshipGraph(selectedTable, selectedNode?.name ?? "Unknown", visibleEdges), [selectedNode?.name, selectedTable, visibleEdges]);
   const selectNeighbor = (id: string) => { setSelectedTable(id); setSelectedEdge(null); };
   return <main className="shell">
-    <header className="topbar"><div><div className="eyebrow">NINOX DATA MAPPER / P0</div><h1>Relationship Explorer</h1><p className="subhead">Browse every table and relationship in the local database.</p></div><div className="readonly"><span className="status-dot" /> READ ONLY</div></header>
+    <header className="topbar"><div><div className="eyebrow">NINOX DATA MAPPER / P0</div><h1>Relationship Explorer</h1><p className="subhead">Browse every table and relationship in the local database.</p></div><div className="topbar-actions"><div className="readonly"><span className="status-dot" /> READ ONLY</div><RescanControl /></div></header>
     <section className="hero-grid"><div className="database-card"><div className="card-label">DATABASE SCOPE</div><div className="database-name">Complete Ninox database</div><div className="database-note">{data.summary.tableCount} tables · {data.summary.relationshipCount} relationships</div></div><div className="metric-card"><span>TABLES</span><strong>{data.summary.tableCount}</strong><small>all scanned tables</small></div><div className="metric-card"><span>RELATIONSHIPS</span><strong>{data.summary.relationshipCount}</strong><small>global graph edges</small></div><div className="metric-card"><span>HYPOTHESES</span><strong className="amber">{sourceCounts.detected}</strong><small>detected, review required</small></div></section>
     <section className="quality-panel" aria-labelledby="quality-heading">
       <div className="quality-heading"><div><div className="card-label">MAP QUALITY</div><h2 id="quality-heading">Evidence coverage</h2></div><span className="quality-status">{data.quality.scanErrors.length === 0 ? "SCAN COMPLETE" : `${data.quality.scanErrors.length} SCAN ERROR${data.quality.scanErrors.length === 1 ? "" : "S"}`}</span></div>
