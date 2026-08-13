@@ -1,4 +1,5 @@
 import type { ShopMapData } from "./types.js";
+import type { DataQualityReport } from "../src/scanner/dataQuality.js";
 
 export type RelationshipSource = "ninox" | "detected" | "unknown";
 export type Direction = "all" | "incoming" | "outgoing";
@@ -30,6 +31,7 @@ export interface ExplorerData {
   relationships: ExplorerRelationship[];
   shopMap: ShopMapData;
   summary: { tableCount: number; relationshipCount: number; fieldCount: number; sampledRecords: number };
+  quality: DataQualityReport;
 }
 
 export function relationshipCounts(relationships: ExplorerRelationship[]) {

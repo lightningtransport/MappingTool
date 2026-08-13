@@ -41,6 +41,17 @@ const data: ExplorerData = {
     ],
   },
   summary: { tableCount: 2, relationshipCount: 1, fieldCount: 2, sampledRecords: 0 },
+  quality: {
+    generatedAt: "2026-08-13T00:00:00.000Z",
+    scanScannedAt: "2026-08-13T00:00:00.000Z",
+    tables: { total: 2, connected: 2, isolated: 0, hypothesisOnly: 0 },
+    relationships: { confirmed: 1, detected: 0, unknown: 0 },
+    isolatedTables: [],
+    hypothesisOnlyTables: [],
+    inferredRelationships: [],
+    unresolvedReferences: [],
+    scanErrors: [],
+  },
 };
 
 describe("relationship explorer SSR", () => {

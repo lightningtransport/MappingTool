@@ -2,6 +2,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { ReadOnlyNinoxClient } from "../ninox/client.js";
 import type { NinoxRecord, NinoxTableSchema } from "../ninox/types.js";
+import { buildDataQualityReport, writeDataQualityReport } from "./dataQuality.js";
 import { analyzeRelationships, detectRelationshipsFromSamples, type RelationshipResult } from "./relationshipAnalyzer.js";
 
 export interface DatabaseScanResult {
@@ -96,6 +97,7 @@ export async function writeDatabaseScan(result: DatabaseScanResult, outputRoot =
   await writeFile(resolve(outputRoot, "schema.json"), `${JSON.stringify({ scannedAt: result.scannedAt, tableCount: result.tableCount, fieldCount: result.fieldCount, tables: result.tables }, null, 2)}\n`, "utf8");
   await writeFile(resolve(outputRoot, "relationships.json"), `${JSON.stringify(result.relationships, null, 2)}\n`, "utf8");
   await writeFile(resolve(outputRoot, "scan-summary.json"), `${JSON.stringify({ scannedAt: result.scannedAt, tableCount: result.tableCount, fieldCount: result.fieldCount, sampledRecords: result.sampledRecords, relationships: result.relationships.counts, errors: result.errors }, null, 2)}\n`, "utf8");
+  await writeDataQualityReport(buildDataQualityReport({ scannedAt: result.scannedAt, tables: result.tables, relationships: result.relationships.relationships, errors: result.errors }), outputRoot);
   await Promise.all(result.samples.map((sample) => {
     const safeName = sample.tableName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || sample.tableId;
     return writeFile(resolve(samplesDir, `${safeName}-${sample.tableId}.json`), `${JSON.stringify({ tableId: sample.tableId, tableName: sample.tableName, records: sample.records }, null, 2)}\n`, "utf8");

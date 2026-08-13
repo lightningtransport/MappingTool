@@ -1,6 +1,9 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { ReadOnlyNinoxClient } from "../src/ninox/client.js";
-import { scanDatabase } from "../src/scanner/scanDatabase.js";
+import { scanDatabase, writeDatabaseScan } from "../src/scanner/scanDatabase.js";
 
 describe("scanDatabase", () => {
   it("inspects all catalog tables and aggregates relationships", async () => {
@@ -19,5 +22,15 @@ describe("scanDatabase", () => {
     expect(result.relationships.counts.ninox).toBe(1);
     expect(result.sampledRecords).toBe(2);
     expect(result.errors).toEqual([]);
+
+    const outputRoot = await mkdtemp(join(tmpdir(), "ninox-data-mapper-"));
+    try {
+      await writeDatabaseScan(result, outputRoot);
+      const quality = JSON.parse(await readFile(join(outputRoot, "analysis", "data-quality.json"), "utf8")) as { tables: { connected: number }; relationships: { confirmed: number } };
+      expect(quality.tables.connected).toBe(2);
+      expect(quality.relationships.confirmed).toBe(1);
+    } finally {
+      await rm(outputRoot, { recursive: true, force: true });
+    }
   });
 });
