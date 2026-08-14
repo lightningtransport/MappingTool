@@ -19,6 +19,7 @@
     "scan": "node --import tsx src/cli/scanDatabase.ts",
     "shop:map": "node --import tsx src/cli/shopMap.ts",
     "quality:report": "node --import tsx src/cli/qualityReport.ts",
+    "diagnose:unresolved": "node --import tsx src/cli/diagnoseUnresolvedReference.ts",
     "agent:loop": "node --import tsx src/agents/runner.ts",
     "import:env": "node scripts/import-ninox-env.mjs"
   },
