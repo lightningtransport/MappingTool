@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterRelationships, relationshipCounts, scopedRelationships, type ExplorerRelationship } from "../app/explorer-data.js";
+import { filterRelationships, normalizeExplorerFields, relationshipCounts, scopedRelationships, type ExplorerRelationship } from "../app/explorer-data.js";
 
 const edges = [
   { sourceTableId: "A", targetTableId: "B", source: "ninox" },
@@ -29,5 +29,17 @@ describe("explorer relationship logic", () => {
     const unrelatedEdgeTouchingAnchor = { sourceTableId: "E", targetTableId: "C", source: "unknown" } as ExplorerRelationship;
     expect(scopedRelationships("shop", [shopEdge, unrelatedEdgeTouchingAnchor], [shopEdge])).toEqual([shopEdge]);
     expect(scopedRelationships("all", [shopEdge, unrelatedEdgeTouchingAnchor], [shopEdge])).toEqual([shopEdge, unrelatedEdgeTouchingAnchor]);
+  });
+
+  it("normalizes schema fields without passing raw metadata to the client", () => {
+    expect(normalizeExplorerFields([
+      { id: "B", name: "Owner", type: "ref", referenceToTable: "LE", reverseField: "R" },
+      { id: "A", name: "Status", type: "choice", choices: [{ id: "1", caption: "Active", secret: "omit" }] },
+      { id: "C", name: "Broken", type: "ref" },
+    ])).toEqual([
+      { id: "C", name: "Broken", type: "ref", choices: [], referenceToTable: "Unknown", referenceFromTable: "Unknown", referenceFromField: "Unknown", reverseField: "Unknown", metadataState: "partial" },
+      { id: "B", name: "Owner", type: "ref", choices: [], referenceToTable: "LE", referenceFromTable: "Unknown", referenceFromField: "Unknown", reverseField: "R", metadataState: "available" },
+      { id: "A", name: "Status", type: "choice", choices: [{ id: "1", caption: "Active" }], referenceToTable: "Unknown", referenceFromTable: "Unknown", referenceFromField: "Unknown", reverseField: "Unknown", metadataState: "available" },
+    ]);
   });
 });

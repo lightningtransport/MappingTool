@@ -22,8 +22,8 @@ const relationship = {
 const data: ExplorerData = {
   generatedAt: "2026-08-13T00:00:00.000Z",
   tables: [
-    { id: "A", name: "TrucksDB", relationshipCount: 1 },
-    { id: "B", name: "Owner", relationshipCount: 1 },
+    { id: "A", name: "TrucksDB", relationshipCount: 1, fields: [] },
+    { id: "B", name: "Owner", relationshipCount: 1, fields: [] },
   ],
   relationships: [relationship],
   shopMap: {
@@ -62,6 +62,17 @@ describe("relationship explorer SSR", () => {
     expect(html).toContain('<title id="graph-title">Relationships centered on TrucksDB</title>');
     expect(html).toContain("<title>Ninox: TrucksDB.Owner to Owner.Id</title>");
     expect(html).not.toMatch(/<title[^>]*><\/title>/);
+  });
+
+  it("renders the selected table field inspector", () => {
+    const html = renderToString(createElement(RelationshipExplorer, { data: {
+      ...data,
+      tables: [{ ...data.tables[0]!, fields: [{ id: "f1", name: "Owner", type: "ref", choices: [], referenceToTable: "B", referenceFromTable: "Unknown", referenceFromField: "Unknown", reverseField: "Trucks", metadataState: "available" }] }, data.tables[1]!],
+    } }));
+    expect(html).toContain("Field inspector");
+    expect(html).toContain("Owner");
+    expect(html).toContain("REFERENCE TO");
+    expect(html).toContain("Owner<!-- --> <small>(<!-- -->B<!-- -->)</small>");
   });
 
   it("labels a broken Ninox target as unresolved rather than inferred", () => {

@@ -4,11 +4,30 @@ import type { StructuralChangeSummary, StructuralDiff } from "../src/scanner/sca
 
 export type RelationshipSource = "ninox" | "detected" | "unknown";
 export type Direction = "all" | "incoming" | "outgoing";
+export type FieldMetadataState = "available" | "partial" | "unknown";
+
+export interface ExplorerChoice {
+  id: string;
+  caption: string;
+}
+
+export interface ExplorerField {
+  id: string;
+  name: string;
+  type: string;
+  choices: ExplorerChoice[];
+  referenceToTable: string;
+  referenceFromTable: string;
+  referenceFromField: string;
+  reverseField: string;
+  metadataState: FieldMetadataState;
+}
 
 export interface ExplorerTable {
   id: string;
   name: string;
   relationshipCount: number;
+  fields: ExplorerField[];
 }
 
 export interface ExplorerRelationship {
@@ -43,6 +62,46 @@ export interface ExplorerHistory {
   summary: StructuralChangeSummary;
   highlights: string[];
   remainingChanges: number;
+}
+
+function text(value: unknown): string {
+  return typeof value === "string" && value.trim() ? value : "Unknown";
+}
+
+function object(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+export function normalizeExplorerFields(rawFields: unknown): ExplorerField[] {
+  if (!Array.isArray(rawFields)) return [];
+  return rawFields.flatMap((raw) => {
+    const field = object(raw);
+    if (!field) return [];
+    const type = text(field.type);
+    const choices = Array.isArray(field.choices)
+      ? field.choices.flatMap((rawChoice) => {
+        const choice = object(rawChoice);
+        return choice ? [{ id: text(choice.id), caption: text(choice.caption) }] : [];
+      })
+      : [];
+    const referenceToTable = text(field.referenceToTable);
+    const referenceFromTable = text(field.referenceFromTable);
+    const referenceFromField = text(field.referenceFromField);
+    const referenceDataMissing = type === "ref"
+      ? referenceToTable === "Unknown"
+      : type === "rev" && (referenceFromTable === "Unknown" || referenceFromField === "Unknown");
+    return [{
+      id: text(field.id),
+      name: text(field.name),
+      type,
+      choices,
+      referenceToTable,
+      referenceFromTable,
+      referenceFromField,
+      reverseField: text(field.reverseField),
+      metadataState: type === "Unknown" ? "unknown" : referenceDataMissing ? "partial" : "available",
+    } satisfies ExplorerField];
+  }).sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 }
 
 export function summarizeStructuralDiff(diff: StructuralDiff | null): ExplorerHistory | null {
