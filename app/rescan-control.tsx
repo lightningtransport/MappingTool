@@ -10,6 +10,7 @@ const initialState: ScanActionState = {
   finishedAt: null,
   durationMs: null,
   counts: null,
+  changes: null,
   error: null,
 };
 
@@ -24,7 +25,7 @@ export default function RescanControl() {
     <form action={formAction}><button type="submit" disabled={pending}>{pending ? "Rescanning…" : "Rescan"}</button></form>
     <div className={`rescan-state ${pending ? "running" : state.status}`} aria-live="polite">
       {pending && <span>Scanning Ninox metadata and samples…</span>}
-      {!pending && state.status === "success" && state.counts && <span>Updated {state.finishedAt} · {state.counts.tables} tables · {relationshipCount} references · {state.durationMs} ms</span>}
+      {!pending && state.status === "success" && state.counts && <span>Updated {state.finishedAt} · {state.counts.tables} tables · {relationshipCount} references · {state.changes?.total ?? 0} structural changes · {state.durationMs} ms</span>}
       {!pending && state.status === "error" && <span>{state.error}</span>}
       {!pending && state.status === "idle" && <span>Refresh local read-only artifacts</span>}
     </div>

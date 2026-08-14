@@ -8,11 +8,12 @@ loadEnvironment();
 try {
   const config = getNinoxConfig();
   const result = await scanDatabase(new AxiosReadOnlyNinoxClient(config), 5);
-  await writeDatabaseScan(result);
+  const history = await writeDatabaseScan(result);
   console.log(`Scan complete: ${result.tableCount} tables, ${result.fieldCount} fields`);
   console.log(`Sampled records: ${result.sampledRecords}`);
   console.log(`Relationships: ${result.relationships.counts.ninox} Ninox, ${result.relationships.counts.detected} detected, ${result.relationships.counts.unknown} unknown`);
   console.log(`Errors: ${result.errors.length}`);
+  console.log(`Structural changes: ${history.baseline ? "baseline" : history.summary.total}`);
   console.log("Output saved to ./output");
   console.log("READ ONLY — No Ninox data modified.");
 } catch (error) {

@@ -4,6 +4,7 @@ import type { ReadOnlyNinoxClient } from "../ninox/client.js";
 import type { NinoxRecord, NinoxTableSchema } from "../ninox/types.js";
 import { buildDataQualityReport, writeDataQualityReport } from "./dataQuality.js";
 import { analyzeRelationships, detectRelationshipsFromSamples, type RelationshipResult } from "./relationshipAnalyzer.js";
+import { archiveStructuralSnapshot, buildStructuralSnapshot, diffStructuralSnapshots, readCurrentStructuralSnapshot, writeStructuralHistory, type StructuralDiff } from "./scanHistory.js";
 
 export interface DatabaseScanResult {
   scannedAt: string;
@@ -90,7 +91,11 @@ export async function scanDatabase(client: ReadOnlyNinoxClient, concurrency = 5)
   };
 }
 
-export async function writeDatabaseScan(result: DatabaseScanResult, outputRoot = resolve(process.cwd(), "output")): Promise<void> {
+export async function writeDatabaseScan(result: DatabaseScanResult, outputRoot = resolve(process.cwd(), "output")): Promise<StructuralDiff> {
+  const previousSnapshot = await readCurrentStructuralSnapshot(outputRoot);
+  const currentSnapshot = buildStructuralSnapshot(result);
+  const structuralDiff = diffStructuralSnapshots(previousSnapshot, currentSnapshot);
+  if (previousSnapshot) await archiveStructuralSnapshot(previousSnapshot, outputRoot);
   await mkdir(outputRoot, { recursive: true });
   const samplesDir = resolve(outputRoot, "samples");
   await mkdir(samplesDir, { recursive: true });
@@ -102,4 +107,6 @@ export async function writeDatabaseScan(result: DatabaseScanResult, outputRoot =
     const safeName = sample.tableName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || sample.tableId;
     return writeFile(resolve(samplesDir, `${safeName}-${sample.tableId}.json`), `${JSON.stringify({ tableId: sample.tableId, tableName: sample.tableName, records: sample.records }, null, 2)}\n`, "utf8");
   }));
+  await writeStructuralHistory(currentSnapshot, structuralDiff, outputRoot);
+  return structuralDiff;
 }

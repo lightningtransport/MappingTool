@@ -35,9 +35,9 @@ describe("runNinoxRescan", () => {
     let release!: () => void;
     const gate = new Promise<void>((resolve) => { release = resolve; });
     const firstScan = vi.fn(async () => { await gate; return result; });
-    const first = runNinoxRescan({ scan: firstScan, persist: async () => undefined });
+    const first = runNinoxRescan({ scan: firstScan, persist: async () => null });
     const secondScan = vi.fn(async () => result);
-    const second = await runNinoxRescan({ scan: secondScan, persist: async () => undefined });
+    const second = await runNinoxRescan({ scan: secondScan, persist: async () => null });
 
     expect(second).toMatchObject({ status: "error", error: "A Ninox scan is already running." });
     expect(secondScan).not.toHaveBeenCalled();
@@ -48,7 +48,7 @@ describe("runNinoxRescan", () => {
   it("sanitizes scanner failures", async () => {
     const state = await runNinoxRescan({
       scan: async () => { throw new Error("Bearer private-token-value"); },
-      persist: async () => undefined,
+      persist: async () => null,
     });
 
     expect(state).toMatchObject({ status: "error", error: "Unexpected Ninox client error", counts: null });

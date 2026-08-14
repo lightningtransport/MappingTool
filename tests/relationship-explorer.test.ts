@@ -52,6 +52,7 @@ const data: ExplorerData = {
     unresolvedReferences: [],
     scanErrors: [],
   },
+  history: null,
 };
 
 describe("relationship explorer SSR", () => {
@@ -95,5 +96,27 @@ describe("relationship explorer SSR", () => {
     expect(html).toContain("unresolved table <!-- -->UC");
     expect(html).toContain("Broken Ninox reference");
     expect(html).not.toContain("Hypothesis ·");
+  });
+
+  it("renders the latest structural change summary", () => {
+    const historyData: ExplorerData = {
+      ...data,
+      history: {
+        baseline: false,
+        fromScannedAt: "2026-08-14T00:00:00.000Z",
+        toScannedAt: "2026-08-14T01:00:00.000Z",
+        summary: { total: 3, tablesAdded: 1, tablesRemoved: 0, tablesRenamed: 0, fieldsAdded: 1, fieldsRemoved: 0, fieldsRenamed: 0, fieldsChanged: 0, relationshipsAdded: 1, relationshipsRemoved: 0, relationshipsChanged: 0 },
+        highlights: ["Table added: New (C)", "Field added: New.Field (F)", "Relationship added: A.F → C"],
+        remainingChanges: 0,
+      },
+    };
+
+    const html = renderToString(createElement(RelationshipExplorer, { data: historyData }));
+    expect(html).toContain("3 structural changes since the previous scan.");
+    expect(html).toContain("1</b> tables");
+    expect(html).toContain("1</b> fields");
+    expect(html).toContain("1</b> relationships");
+    expect(html).toContain("Review latest changes");
+    expect(html).toContain("Table added: New (C)");
   });
 });

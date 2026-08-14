@@ -3,6 +3,7 @@ import { AxiosReadOnlyNinoxClient } from "../ninox/client.js";
 import { sanitizeError } from "../ninox/sanitize.js";
 import { scanDatabase, writeDatabaseScan, type DatabaseScanResult } from "../scanner/scanDatabase.js";
 import { writeShopMap } from "../scanner/shopMap.js";
+import type { StructuralChangeSummary, StructuralDiff } from "../scanner/scanHistory.js";
 
 export type ScanActionStatus = "idle" | "running" | "success" | "error";
 
@@ -20,12 +21,13 @@ export interface ScanActionState {
     unknown: number;
     errors: number;
   } | null;
+  changes: StructuralChangeSummary | null;
   error: string | null;
 }
 
 export interface RescanDependencies {
   scan: () => Promise<DatabaseScanResult>;
-  persist: (result: DatabaseScanResult) => Promise<void>;
+  persist: (result: DatabaseScanResult) => Promise<StructuralDiff | null>;
 }
 
 let scanInProgress = false;
@@ -38,6 +40,7 @@ export async function runNinoxRescan(dependencies: RescanDependencies): Promise<
       finishedAt: new Date().toISOString(),
       durationMs: 0,
       counts: null,
+      changes: null,
       error: "A Ninox scan is already running.",
     };
   }
@@ -47,7 +50,7 @@ export async function runNinoxRescan(dependencies: RescanDependencies): Promise<
   const startedMs = Date.now();
   try {
     const result = await dependencies.scan();
-    await dependencies.persist(result);
+    const history = await dependencies.persist(result);
     return {
       status: "success",
       startedAt,
@@ -62,6 +65,7 @@ export async function runNinoxRescan(dependencies: RescanDependencies): Promise<
         unknown: result.relationships.counts.unknown,
         errors: result.errors.length,
       },
+      changes: history?.summary ?? null,
       error: null,
     };
   } catch (error) {
@@ -71,6 +75,7 @@ export async function runNinoxRescan(dependencies: RescanDependencies): Promise<
       finishedAt: new Date().toISOString(),
       durationMs: Date.now() - startedMs,
       counts: null,
+      changes: null,
       error: sanitizeError(error).message,
     };
   } finally {
@@ -86,8 +91,9 @@ export async function executeNinoxRescan(): Promise<ScanActionState> {
       return scanDatabase(client, 5);
     },
     persist: async (result) => {
-      await writeDatabaseScan(result);
+      const history = await writeDatabaseScan(result);
       await writeShopMap();
+      return history;
     },
   });
 }

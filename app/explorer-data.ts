@@ -1,5 +1,6 @@
 import type { ShopMapData } from "./types.js";
 import type { DataQualityReport } from "../src/scanner/dataQuality.js";
+import type { StructuralChangeSummary, StructuralDiff } from "../src/scanner/scanHistory.js";
 
 export type RelationshipSource = "ninox" | "detected" | "unknown";
 export type Direction = "all" | "incoming" | "outgoing";
@@ -32,6 +33,41 @@ export interface ExplorerData {
   shopMap: ShopMapData;
   summary: { tableCount: number; relationshipCount: number; fieldCount: number; sampledRecords: number };
   quality: DataQualityReport;
+  history: ExplorerHistory | null;
+}
+
+export interface ExplorerHistory {
+  baseline: boolean;
+  fromScannedAt: string | null;
+  toScannedAt: string;
+  summary: StructuralChangeSummary;
+  highlights: string[];
+  remainingChanges: number;
+}
+
+export function summarizeStructuralDiff(diff: StructuralDiff | null): ExplorerHistory | null {
+  if (!diff) return null;
+  const highlights = [
+    ...diff.tables.added.map((table) => `Table added: ${table.name} (${table.id})`),
+    ...diff.tables.removed.map((table) => `Table removed: ${table.name} (${table.id})`),
+    ...diff.tables.renamed.map((table) => `Table renamed: ${table.previousName} → ${table.name} (${table.id})`),
+    ...diff.fields.added.map((field) => `Field added: ${field.tableName}.${field.name} (${field.id})`),
+    ...diff.fields.removed.map((field) => `Field removed: ${field.tableName}.${field.name} (${field.id})`),
+    ...diff.fields.renamed.map((field) => `Field renamed: ${field.tableName}.${field.previousName} → ${field.name} (${field.id})`),
+    ...diff.fields.changed.map((field) => `Field changed: ${field.tableName}.${field.name} — ${field.changedProperties.join(", ")}`),
+    ...diff.relationships.added.map((relationship) => `Relationship added: ${relationship.sourceTableId}.${relationship.sourceFieldId} → ${relationship.targetTableId}`),
+    ...diff.relationships.removed.map((relationship) => `Relationship removed: ${relationship.sourceTableId}.${relationship.sourceFieldId} → ${relationship.targetTableId}`),
+    ...diff.relationships.changed.map((relationship) => `Relationship changed: ${relationship.sourceTableId}.${relationship.sourceFieldId} → ${relationship.targetTableId} — ${relationship.changedProperties.join(", ")}`),
+  ];
+  const visibleHighlights = highlights.slice(0, 8);
+  return {
+    baseline: diff.baseline,
+    fromScannedAt: diff.fromScannedAt,
+    toScannedAt: diff.toScannedAt,
+    summary: diff.summary,
+    highlights: visibleHighlights,
+    remainingChanges: Math.max(0, highlights.length - visibleHighlights.length),
+  };
 }
 
 export function relationshipCounts(relationships: ExplorerRelationship[]) {
