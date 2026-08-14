@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { DatabaseScanResult } from "../src/scanner/scanDatabase.js";
 import { writeDatabaseScan } from "../src/scanner/scanDatabase.js";
-import { buildStructuralSnapshot, diffStructuralSnapshots } from "../src/scanner/scanHistory.js";
+import { buildStructuralSnapshot, diffStructuralSnapshots, readStructuralDiffHistory } from "../src/scanner/scanHistory.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -78,17 +78,23 @@ describe("structural scan history", () => {
     expect(diff.fields.changed[0]?.changedProperties).toEqual(["type"]);
   });
 
-  it("archives both scans and writes the latest zero-change comparison", async () => {
+  it("keeps prior changes available after a later zero-change scan", async () => {
     const outputRoot = await mkdtemp(join(tmpdir(), "ninox-history-"));
     roots.push(outputRoot);
     const first = scan("2026-08-14T00:00:00.000Z", [{ id: "A", name: "Alpha", fields: [] }]);
-    const second = scan("2026-08-14T01:00:00.000Z", [{ id: "A", name: "Alpha", fields: [] }]);
+    const second = scan("2026-08-14T01:00:00.000Z", [{ id: "A", name: "Alpha", fields: [{ id: "F", name: "Added", type: "text" }] }]);
+    const third = scan("2026-08-14T02:00:00.000Z", [{ id: "A", name: "Alpha", fields: [{ id: "F", name: "Added", type: "text" }] }]);
 
     await expect(writeDatabaseScan(first, outputRoot)).resolves.toMatchObject({ baseline: true });
-    await expect(writeDatabaseScan(second, outputRoot)).resolves.toMatchObject({ baseline: false, summary: { total: 0 } });
+    await expect(writeDatabaseScan(second, outputRoot)).resolves.toMatchObject({ baseline: false, summary: { total: 1 } });
+    await expect(writeDatabaseScan(third, outputRoot)).resolves.toMatchObject({ baseline: false, summary: { total: 0 } });
     const snapshots = await readdir(join(outputRoot, "history", "snapshots"));
+    const diffs = await readdir(join(outputRoot, "history", "diffs"));
     const latest = JSON.parse(await readFile(join(outputRoot, "history", "latest-diff.json"), "utf8")) as { fromScannedAt: string; toScannedAt: string; summary: { total: number } };
-    expect(snapshots).toHaveLength(2);
-    expect(latest).toEqual(expect.objectContaining({ fromScannedAt: first.scannedAt, toScannedAt: second.scannedAt, summary: expect.objectContaining({ total: 0 }) }));
+    const history = await readStructuralDiffHistory(outputRoot);
+    expect(snapshots).toHaveLength(3);
+    expect(diffs).toHaveLength(3);
+    expect(latest).toEqual(expect.objectContaining({ fromScannedAt: second.scannedAt, toScannedAt: third.scannedAt, summary: expect.objectContaining({ total: 0 }) }));
+    expect(history.map((entry) => entry.summary.total)).toEqual([0, 1, 0]);
   });
 });

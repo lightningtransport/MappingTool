@@ -1,4 +1,4 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { NinoxTableSchema, UnknownObject } from "../ninox/types.js";
 import type { DatabaseScanResult } from "./scanDatabase.js";
@@ -269,6 +269,33 @@ export async function archiveStructuralSnapshot(snapshot: StructuralSnapshot, ou
   return outputPath;
 }
 
+export async function readStructuralDiffHistory(
+  outputRoot = resolve(process.cwd(), "output"),
+  limit = 20,
+): Promise<StructuralDiff[]> {
+  if (limit <= 0) return [];
+  const snapshotRoot = resolve(outputRoot, "history", "snapshots");
+  try {
+    const filenames = (await readdir(snapshotRoot)).filter((filename) => filename.endsWith(".json"));
+    const snapshots = await Promise.all(filenames.map(async (filename) => JSON.parse(
+      await readFile(resolve(snapshotRoot, filename), "utf8"),
+    ) as StructuralSnapshot));
+    snapshots.sort((a, b) => a.scannedAt.localeCompare(b.scannedAt));
+    return snapshots.map((snapshot, index) => diffStructuralSnapshots(snapshots[index - 1] ?? null, snapshot)).reverse().slice(0, limit);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
+    throw error;
+  }
+}
+
+export async function archiveStructuralDiff(diff: StructuralDiff, outputRoot = resolve(process.cwd(), "output")): Promise<string> {
+  const diffRoot = resolve(outputRoot, "history", "diffs");
+  await mkdir(diffRoot, { recursive: true });
+  const outputPath = resolve(diffRoot, snapshotFilename(diff.toScannedAt));
+  await writeJsonAtomic(outputPath, diff);
+  return outputPath;
+}
+
 export async function writeStructuralHistory(
   snapshot: StructuralSnapshot,
   diff: StructuralDiff,
@@ -276,7 +303,10 @@ export async function writeStructuralHistory(
 ): Promise<void> {
   const historyRoot = resolve(outputRoot, "history");
   await mkdir(historyRoot, { recursive: true });
-  await archiveStructuralSnapshot(snapshot, outputRoot);
+  await Promise.all([
+    archiveStructuralSnapshot(snapshot, outputRoot),
+    archiveStructuralDiff(diff, outputRoot),
+  ]);
   await writeJsonAtomic(resolve(historyRoot, "latest-snapshot.json"), snapshot);
   await writeJsonAtomic(resolve(historyRoot, "latest-diff.json"), diff);
 }

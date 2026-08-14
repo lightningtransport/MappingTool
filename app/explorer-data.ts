@@ -33,7 +33,7 @@ export interface ExplorerData {
   shopMap: ShopMapData;
   summary: { tableCount: number; relationshipCount: number; fieldCount: number; sampledRecords: number };
   quality: DataQualityReport;
-  history: ExplorerHistory | null;
+  history: ExplorerHistory[];
 }
 
 export interface ExplorerHistory {
