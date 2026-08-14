@@ -1,6 +1,6 @@
 # Ninox Data Mapper
 
-Build the P0 extractor before any Next.js interface. Follow the PRD in `docs/prd-p0.md`.
+Maintain the completed P0 extractor while extending the local mapper through P1. Follow `docs/prd-p0.md` for discovery requirements and the active P1 milestone in `.agents/skills/ninox-data-mapper/references/prd-p1.md`.
 
 ## Non-negotiable rules
 
@@ -8,12 +8,14 @@ Build the P0 extractor before any Next.js interface. Follow the PRD in `docs/prd
 - Never add POST, PUT, PATCH, DELETE, writable queries, or file uploads.
 - Keep credentials only in `.env.local`. Never print tokens or Authorization headers.
 - Do not invent endpoints, field types, metadata, or relationships. Preserve raw responses and mark missing information as `Unknown`.
-- Prefer small, independently verifiable changes. Run typecheck and tests after implementation.
-- Build in this order: connection, tables, one table, samples, metadata, relationships, JSON output, CLI scan, then UI.
+- Keep annotations and generated P1 analysis local under ignored `output/` paths. Never send them to Ninox.
+- Treat human review as opinion, sample profiles as sample-based evidence, and absent metadata as `Unknown`.
+- Prefer small, independently verifiable milestones. Run typecheck, tests, and build before each commit.
 
 ## Agent workflow
 
-- Use `gpt-5.6-luna` with low reasoning for routine work.
-- Escalate to `gpt-5.6-terra` with medium reasoning after a failed verified attempt.
-- Reserve `gpt-5.6-sol` with high reasoning for a third attempt or explicit final review.
-- Stop after three rounds, on missing authority, or before any destructive/external write.
+- Run a dry-run before every agent loop.
+- Use `gpt-5.6-luna` with low reasoning for round one.
+- Escalate to `gpt-5.6-terra` with medium reasoning only after a failed verifier result.
+- Limit implementation loops to two rounds. Use `gpt-5.6-sol` only with explicit `--final-review` authorization.
+- Do not escalate model effort for infrastructure failures. Stop on missing authority or before destructive/external writes.

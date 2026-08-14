@@ -5,6 +5,7 @@
   "required": ["status", "summary", "tests", "nextAction"],
   "properties": {
     "status": { "type": "string", "enum": ["passed", "failed", "blocked"] },
+    "failureKind": { "type": "string", "enum": ["implementation", "infrastructure", "invalid-output"] },
     "summary": { "type": "string" },
     "tests": { "type": "array", "items": { "type": "string" } },
     "nextAction": { "type": ["string", "null"] }

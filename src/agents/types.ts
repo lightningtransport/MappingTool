@@ -1,6 +1,7 @@
 export type ModelAlias = "luna" | "terra" | "sol";
 export type ReasoningEffort = "low" | "medium" | "high";
 export type AgentRunStatus = "passed" | "failed" | "blocked";
+export type AgentFailureKind = "implementation" | "infrastructure" | "invalid-output";
 
 export interface ModelRoute {
   alias: ModelAlias;
@@ -10,6 +11,7 @@ export interface ModelRoute {
 
 export interface AgentResult {
   status: AgentRunStatus;
+  failureKind?: AgentFailureKind;
   summary: string;
   tests: string[];
   nextAction: string | null;
