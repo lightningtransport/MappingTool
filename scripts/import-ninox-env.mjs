@@ -6,6 +6,21 @@ const sourceArgument = process.argv.slice(2).find((argument) => argument !== "--
 const sourcePath = resolve(sourceArgument ?? "/Users/cristianperez/Documents/Ninox api/Ninox api.md");
 const destinationPath = resolve(process.cwd(), ".env.local");
 
+const baseUrl = process.env.NINOX_BASE_URL?.trim().replace(/\/+$/, "");
+if (!baseUrl) {
+  throw new Error("Set NINOX_BASE_URL in the process environment before importing credentials.");
+}
+
+let parsedBaseUrl;
+try {
+  parsedBaseUrl = new URL(baseUrl);
+} catch {
+  throw new Error("NINOX_BASE_URL must be a valid URL.");
+}
+if (parsedBaseUrl.protocol !== "https:") {
+  throw new Error("NINOX_BASE_URL must use HTTPS.");
+}
+
 if (!force) {
   try {
     await access(destinationPath);
@@ -29,7 +44,7 @@ const token = readValue("API");
 const teamId = readValue("Workspace");
 const databaseId = readValue("DB id");
 const content = [
-  "NINOX_BASE_URL=https://lightningtransport.ninoxdb.com/v1",
+  `NINOX_BASE_URL=${baseUrl}`,
   `NINOX_TOKEN=${token}`,
   `NINOX_TEAM_ID=${teamId}`,
   `NINOX_DATABASE_ID=${databaseId}`,
