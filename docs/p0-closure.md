@@ -2,6 +2,8 @@
 
 Audit date: 2026-08-13
 
+> Historical snapshot: this document records the evidence available when P0 was closed. It is not the current scan status. See [`p1-status.md`](p1-status.md) for the latest timestamped counters and P1 progress.
+
 ## Outcome
 
 P0 is complete for the current Ninox Private Cloud database. The mapper discovers the live schema, samples records, extracts explicit `ref` relationships, validates matching `rev` metadata when present, keeps unsupported destinations unresolved, writes local artifacts, and exposes the result through a read-only Next.js explorer.
