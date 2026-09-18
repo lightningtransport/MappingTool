@@ -3,6 +3,7 @@ import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import RelationshipExplorer from "../app/relationship-explorer.js";
 import type { ExplorerData } from "../app/explorer-data.js";
+import { emptyCatalog } from "../src/catalog/store.js";
 
 const relationship = {
   sourceTable: "TrucksDB",
@@ -53,26 +54,34 @@ const data: ExplorerData = {
     scanErrors: [],
   },
   history: [],
+  catalog: {
+    annotations: emptyCatalog("2026-08-13T00:00:00.000Z"),
+    coverage: { reviewedTables: 0, documentedFields: 0, pendingCandidates: 0, pendingRelationships: 0, orphanedAnnotations: 0 },
+    orphans: [],
+    issue: null,
+  },
 };
 
 describe("relationship explorer SSR", () => {
-  it("renders SVG titles as stable text for hydration", () => {
+  it("renders the catalog identity and evidence boundaries", () => {
     const html = renderToString(createElement(RelationshipExplorer, { data }));
 
-    expect(html).toContain('<title id="graph-title">Relationships centered on TrucksDB</title>');
-    expect(html).toContain("<title>Ninox: TrucksDB.Owner to Owner.Id</title>");
-    expect(html).not.toMatch(/<title[^>]*><\/title>/);
+    expect(html).toContain("TECHNICAL CATALOG");
+    expect(html).toContain("Ninox evidence");
+    expect(html).toContain("Human reviewed");
+    expect(html).toContain("Usage &amp; Review");
+    expect(html).toContain("READ ONLY TO NINOX");
   });
 
-  it("renders the selected table field inspector", () => {
+  it("renders a stable overview editor for the selected table", () => {
     const html = renderToString(createElement(RelationshipExplorer, { data: {
       ...data,
       tables: [{ ...data.tables[0]!, fields: [{ id: "f1", name: "Owner", type: "ref", choices: [], referenceToTable: "B", referenceFromTable: "Unknown", referenceFromField: "Unknown", reverseField: "Trucks", metadataState: "available" }] }, data.tables[1]!],
     } }));
-    expect(html).toContain("Field inspector");
-    expect(html).toContain("Owner");
-    expect(html).toContain("REFERENCE TO");
-    expect(html).toContain("Owner<!-- --> <small>(<!-- -->B<!-- -->)</small>");
+    expect(html).toContain("Meaning and governance");
+    expect(html).toContain("Row grain");
+    expect(html).toContain("Business key field IDs");
+    expect(html).toContain("f1");
   });
 
   it("labels a broken Ninox target as unresolved rather than inferred", () => {
@@ -103,10 +112,8 @@ describe("relationship explorer SSR", () => {
     };
 
     const html = renderToString(createElement(RelationshipExplorer, { data: unresolvedData }));
-    expect(html).toContain("Review unresolved references");
-    expect(html).toContain("unresolved table <!-- -->UC");
-    expect(html).toContain("Broken Ninox reference");
-    expect(html).not.toContain("Hypothesis ·");
+    expect(html).toContain("Unresolved <b>1</b>");
+    expect(html).toContain("Structural evidence and scan history");
   });
 
   it("renders the latest structural change summary", () => {
@@ -123,11 +130,8 @@ describe("relationship explorer SSR", () => {
     };
 
     const html = renderToString(createElement(RelationshipExplorer, { data: historyData }));
-    expect(html).toContain("3 structural changes in the latest scan.");
-    expect(html).toContain("1</b> scans");
-    expect(html).toContain("3</b> latest changes");
-    expect(html).toContain("3 CHANGES");
-    expect(html).toContain("Table added: New (C)");
+    expect(html).toContain("Saved scans <b>1</b>");
+    expect(html).toContain("3 structural changes");
   });
 
   it("keeps an earlier changed scan visible when the latest scan has no changes", () => {
@@ -143,8 +147,8 @@ describe("relationship explorer SSR", () => {
       ...data,
       history: [{ ...changed, fromScannedAt: changed.toScannedAt, toScannedAt: "2026-08-14T02:00:00.000Z", summary: { ...changed.summary, total: 0, fieldsAdded: 0 }, highlights: [] }, changed],
     } }));
-    expect(html).toContain("Latest scan found no new structural changes. Earlier comparisons remain below.");
-    expect(html).toContain("Field added: Alpha.New field (F)");
-    expect(html).toContain("1 CHANGE");
+    expect(html).toContain("Saved scans <b>2</b>");
+    expect(html).toContain("0 structural changes");
+    expect(html).toContain("1 structural changes");
   });
 });

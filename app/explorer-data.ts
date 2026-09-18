@@ -1,6 +1,7 @@
 import type { ShopMapData } from "./types.js";
 import type { DataQualityReport } from "../src/scanner/dataQuality.js";
 import type { StructuralChangeSummary, StructuralDiff } from "../src/scanner/scanHistory.js";
+import type { CatalogAnnotations, CatalogCoverage, CatalogOrphan } from "../src/catalog/types.js";
 
 export type RelationshipSource = "ninox" | "detected" | "unknown";
 export type Direction = "all" | "incoming" | "outgoing";
@@ -53,6 +54,43 @@ export interface ExplorerData {
   summary: { tableCount: number; relationshipCount: number; fieldCount: number; sampledRecords: number };
   quality: DataQualityReport;
   history: ExplorerHistory[];
+  catalog: {
+    annotations: CatalogAnnotations;
+    coverage: CatalogCoverage;
+    orphans: CatalogOrphan[];
+    issue: string | null;
+  };
+}
+
+export interface CatalogSearchResult {
+  kind: "table" | "field" | "consumer";
+  tableId: string;
+  fieldId: string | null;
+  label: string;
+  detail: string;
+  provenance: "Ninox evidence" | "Human reviewed";
+}
+
+export function searchCatalog(data: ExplorerData, query: string, limit = 60): CatalogSearchResult[] {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return [];
+  const results: CatalogSearchResult[] = [];
+  for (const table of data.tables) {
+    const review = data.catalog.annotations.tables[table.id];
+    const tableText = [table.name, table.id, review?.description, review?.grain, ...(review?.tags ?? []), ...(review?.useFor ?? []), ...(review?.doNotUseFor ?? [])].filter(Boolean).join(" ").toLowerCase();
+    if (tableText.includes(normalized)) results.push({ kind: "table", tableId: table.id, fieldId: null, label: table.name, detail: review?.description || `Table ${table.id}`, provenance: review ? "Human reviewed" : "Ninox evidence" });
+    for (const field of table.fields) {
+      const fieldReview = data.catalog.annotations.fields[`${table.id}:${field.id}`];
+      const fieldText = [field.name, field.id, field.type, fieldReview?.description, fieldReview?.safeUse, fieldReview?.notes].filter(Boolean).join(" ").toLowerCase();
+      if (fieldText.includes(normalized)) results.push({ kind: "field", tableId: table.id, fieldId: field.id, label: `${table.name}.${field.name}`, detail: fieldReview?.description || `${field.id} · ${field.type}`, provenance: fieldReview ? "Human reviewed" : "Ninox evidence" });
+    }
+  }
+  for (const consumer of Object.values(data.catalog.annotations.consumers)) {
+    const text = [consumer.name, consumer.id, consumer.kind, consumer.purpose, ...consumer.filters, ...consumer.joins, ...consumer.freshnessLimitations].join(" ").toLowerCase();
+    if (!text.includes(normalized)) continue;
+    for (const tableId of consumer.tableIds) results.push({ kind: "consumer", tableId, fieldId: null, label: consumer.name, detail: consumer.purpose || consumer.kind, provenance: "Human reviewed" });
+  }
+  return results.slice(0, limit);
 }
 
 export interface ExplorerHistory {

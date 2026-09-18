@@ -6,6 +6,8 @@ import type { ShopMapData } from "./types.js";
 import type { DataQualityReport } from "../src/scanner/dataQuality.js";
 import { readStructuralDiffHistory } from "../src/scanner/scanHistory.js";
 import type { NinoxTableSchema } from "../src/ninox/types.js";
+import { readCatalog } from "../src/catalog/store.js";
+import { catalogCoverage, findCatalogOrphans } from "../src/catalog/model.js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -15,13 +17,14 @@ async function readJson<T>(relativePath: string): Promise<T> {
 }
 
 export async function loadExplorerData(): Promise<ExplorerData> {
-  const [schema, relationshipArtifact, summary, shopMap, quality, history] = await Promise.all([
+  const [schema, relationshipArtifact, summary, shopMap, quality, history, catalogState] = await Promise.all([
     readJson<{ scannedAt: string; tableCount: number; fieldCount: number; tables: NinoxTableSchema[] }>("output/schema.json"),
     readJson<{ scannedAt: string; relationships: Record<string, unknown>[] }>("output/relationships.json"),
     readJson<{ tableCount: number; fieldCount: number; sampledRecords: number; relationships: { ninox?: number; detected?: number; unknown?: number } }>("output/scan-summary.json"),
     readJson<ShopMapData>("output/analysis/shop-map.json"),
     readJson<DataQualityReport>("output/analysis/data-quality.json"),
     readStructuralDiffHistory(),
+    readCatalog(),
   ]);
   const relationships = relationshipArtifact.relationships.map((raw) => {
     const relationship = raw as Partial<ExplorerRelationship>;
@@ -34,6 +37,7 @@ export async function loadExplorerData(): Promise<ExplorerData> {
     return { ...relationship, source, provenance, raw } as ExplorerRelationship;
   });
   const counts = relationshipCounts(relationships);
+  const orphans = findCatalogOrphans(catalogState.catalog, schema.tables, relationships);
   return {
     generatedAt: schema.scannedAt,
     tables: schema.tables.map((table) => ({ id: typeof table.id === "string" ? table.id : "Unknown", name: typeof table.name === "string" ? table.name : "Unknown", fields: normalizeExplorerFields(table.fields), relationshipCount: counts.get(table.id ?? "Unknown") ?? 0 })),
@@ -42,6 +46,7 @@ export async function loadExplorerData(): Promise<ExplorerData> {
     summary: { tableCount: schema.tableCount, relationshipCount: relationships.length, fieldCount: schema.fieldCount, sampledRecords: summary.sampledRecords },
     quality,
     history: history.map((diff) => summarizeStructuralDiff(diff)).filter((item): item is NonNullable<typeof item> => item !== null),
+    catalog: { annotations: catalogState.catalog, coverage: catalogCoverage(catalogState.catalog, orphans), orphans, issue: catalogState.issue },
   };
 }
 
