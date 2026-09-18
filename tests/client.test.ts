@@ -36,6 +36,34 @@ describe("AxiosReadOnlyNinoxClient", () => {
     );
   });
 
+  it("paginates records with documented GET parameters when the limit exceeds 100", async () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => ({ id: index + 1 }));
+    const secondPage = Array.from({ length: 60 }, (_, index) => ({ id: index + 101 }));
+    const get = vi.fn()
+      .mockResolvedValueOnce({ data: firstPage })
+      .mockResolvedValueOnce({ data: secondPage });
+    const client = new AxiosReadOnlyNinoxClient(config, { get } as unknown as AxiosInstance);
+
+    const records = await client.getSampleRecords("E", 1000);
+
+    expect(records).toHaveLength(160);
+    expect(records.at(-1)).toEqual({ id: 160 });
+    expect(get).toHaveBeenNthCalledWith(
+      2,
+      "/teams/team%2Fid/databases/database%20id/tables/E/records",
+      { params: { page: 1, perPage: 100 } },
+    );
+  });
+
+  it("stops safely if a server ignores pagination and repeats the first page", async () => {
+    const page = Array.from({ length: 100 }, (_, index) => ({ id: index + 1 }));
+    const get = vi.fn().mockResolvedValue({ data: page });
+    const client = new AxiosReadOnlyNinoxClient(config, { get } as unknown as AxiosInstance);
+
+    await expect(client.getSampleRecords("E", 1000)).resolves.toHaveLength(100);
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
   it.each([0, -1, 1.5, Number.NaN])("rejects invalid sample limit %s", async (limit) => {
     const get = vi.fn();
     const client = new AxiosReadOnlyNinoxClient(config, { get } as unknown as AxiosInstance);

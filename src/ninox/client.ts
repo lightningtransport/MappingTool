@@ -62,16 +62,48 @@ export class AxiosReadOnlyNinoxClient implements ReadOnlyNinoxClient {
 
   async getSampleRecords(tableId: string, limit = this.#config.sampleLimit): Promise<NinoxRecord[]> {
     if (!Number.isSafeInteger(limit) || limit <= 0) throw new Error("Sample limit must be positive");
-    const data = await this.#get<unknown>([
+    const segments = [
       ...this.#databaseSegments(),
       "tables",
       tableId,
       "records",
-    ]);
-    if (!Array.isArray(data)) throw new Error("Unexpected Ninox records response");
+    ];
+    const firstPage = await this.#get<unknown>(segments);
+    if (!Array.isArray(firstPage)) throw new Error("Unexpected Ninox records response");
 
-    // The documented endpoint has no pagination parameter. Limit locally until a
-    // verified Ninox-supported sampling mechanism is discovered.
-    return (data as UnknownObject[]).slice(0, limit) as NinoxRecord[];
+    const pageSize = 100;
+    const records = (firstPage as UnknownObject[]).slice(0, limit);
+    if (records.length >= limit || firstPage.length < pageSize) {
+      return records as NinoxRecord[];
+    }
+
+    const seen = new Set(records.map((record) => {
+      const id = record.id;
+      return id === undefined ? JSON.stringify(record) : `${typeof id}:${String(id)}`;
+    }));
+    let page = 1;
+
+    while (records.length < limit) {
+      const data = await this.#get<unknown>(segments, {
+        params: { page, perPage: pageSize },
+      });
+      if (!Array.isArray(data)) throw new Error("Unexpected Ninox records response");
+
+      let added = 0;
+      for (const record of data as UnknownObject[]) {
+        const id = record.id;
+        const key = id === undefined ? JSON.stringify(record) : `${typeof id}:${String(id)}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        records.push(record);
+        added += 1;
+        if (records.length >= limit) break;
+      }
+
+      if (data.length < pageSize || added === 0) break;
+      page += 1;
+    }
+
+    return records as NinoxRecord[];
   }
 }

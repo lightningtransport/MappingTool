@@ -17,7 +17,7 @@ El cliente de producción implementa únicamente estos cuatro accesos:
 | `GET /teams/{teamId}/databases/{databaseId}` | Schema general y prueba de conexión. |
 | `GET /teams/{teamId}/databases/{databaseId}/tables` | Catálogo de tablas. |
 | `GET /teams/{teamId}/databases/{databaseId}/tables/{tableId}` | Metadata de una tabla y sus campos. |
-| `GET /teams/{teamId}/databases/{databaseId}/tables/{tableId}/records` | Muestra de registros; el límite de 20 se aplica localmente. |
+| `GET /teams/{teamId}/databases/{databaseId}/tables/{tableId}/records` | Muestra de registros; pagina con GET cuando se solicita más de 100 y aplica el límite final localmente. |
 
 No existe en el cliente un método HTTP genérico público. Todas las rutas se construyen a partir de segmentos codificados.
 
@@ -60,7 +60,7 @@ La documentación oficial enumera estos parámetros para controlar consultas y l
 | `ids` | Devuelve campos usando IDs o nombres. |
 | `choiceStyle` | Devuelve choices como IDs o captions. |
 
-Aunque estos parámetros están documentados, el scanner actual no los envía. Solicita el endpoint de registros sin parámetros y conserva localmente hasta `NINOX_SAMPLE_LIMIT` registros. Cambiar esta conducta requiere verificación en vivo y pruebas específicas.
+El scanner solicita la primera página sin parámetros para conservar el comportamiento histórico. Cuando el límite solicitado supera los 100 registros devueltos por defecto, continúa con `page` y `perPage=100`, elimina duplicados defensivamente y se detiene al recibir una página parcial o repetida. Esta conducta fue verificada en vivo con páginas no solapadas y está cubierta por pruebas específicas. El límite final se sigue aplicando localmente.
 
 ## Métodos prohibidos
 
