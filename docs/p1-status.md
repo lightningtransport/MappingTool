@@ -1,6 +1,6 @@
 # Estado de Ninox Data Mapper P1
 
-Estado verificado: 2026-08-14
+Estado verificado: 2026-09-18
 
 ## Artefacto actual
 
@@ -27,6 +27,7 @@ Las cifras se reconcilian entre `schema.json`, `relationships.json`, `scan-summa
 | P1: historial estructural | Snapshots y diffs locales integrados al scan y al explorador. | `9e96b09`, `8291e95` |
 | P1 hito 0: workflow | Routing Luna → Terra y reglas P1. | `b56d733` |
 | P1 hito 1: inspector | Campos, tipos, opciones y navegación `ref`/`rev`. | `805eaa6` |
+| P1.2: catálogo técnico | Anotaciones persistentes, relaciones revisables, consumidores, importación externa, búsqueda y exportación segura. | Cambio local pendiente de commit |
 
 ## Referencia no resuelta `UC`
 
@@ -43,6 +44,12 @@ La única conclusión respaldada es `unresolved`. No se puede afirmar si la tabl
 - Reporte de calidad con tablas aisladas e hipótesis.
 - Historial estructural local y resumen del último cambio.
 - Diagnóstico seguro de referencias no resueltas.
+- Catálogo técnico persistente identificado exclusivamente por IDs estables.
+- Edición local de propósito, grano, claves, criticidad, usos, campos, relaciones y consumidores.
+- Conservación y detección visible de anotaciones huérfanas después de rescans.
+- Importación idempotente de propuestas externas con hash, versión, fecha y procedencia.
+- Búsqueda global de tablas, campos, IDs, contexto humano y consumidores.
+- Exportaciones JSON y Markdown sin candidatos, muestras ni valores de registros.
 
 ## Límites actuales
 
@@ -52,12 +59,16 @@ La única conclusión respaldada es `unresolved`. No se puede afirmar si la tabl
 - La jerarquía visual de Ninox no se convierte en una relación sin evidencia API.
 - El mapper no diseña todavía el modelo PostgreSQL/Supabase ni genera SQL.
 
+## P1.2 — estado de importación externa
+
+El `data-reporting-kit` descargado se procesó como fuente externa no confiable:
+
+- versión declarada: `3.2.0`;
+- 51 candidatos generados a partir de mapeos Ninox explícitos;
+- 2 mapeos ignorados por no cumplir el contrato o no existir en el schema actual;
+- 51 decisiones continúan pendientes de revisión humana;
+- no se sobrescribieron anotaciones humanas ni se ejecutaron consultas.
+
 ## Próximo hito
 
-El siguiente trabajo es **revisión humana y anotaciones persistentes**:
-
-- estados de tablas como active, obsolete, temporary, duplicate o merge-candidate;
-- descripción y criticidad de campos;
-- confirmación, rechazo o revisión pendiente de relaciones;
-- escritura atómica en `output/review/annotations.json`;
-- preservación de anotaciones durante rescans y separación clara entre opinión humana y evidencia Ninox.
+El siguiente incremento puede añadir catálogo de consultas y linaje avanzado sobre los consumidores ya documentados. Sigue fuera de alcance ejecutar consultas, diseñar Supabase/PostgreSQL o modificar Ninox.

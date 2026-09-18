@@ -5,7 +5,7 @@ Herramienta local y de solo lectura para descubrir, auditar y documentar la estr
 ## Estado del proyecto
 
 - **P0 cerrado:** descubrimiento de tablas y campos, relaciones `ref`/`rev`, muestreo, reporte de calidad, grafo de relaciones y reescaneo local seguro.
-- **P1 en progreso:** historial estructural e inspector de campos completados. El siguiente hito es la revisión humana con anotaciones persistentes.
+- **P1.2 completado:** catálogo técnico con anotaciones persistentes, revisión de relaciones, consumidores, candidatos externos, búsqueda global y exportación segura.
 - **P2 fuera del alcance actual:** diseño PostgreSQL/Supabase, generación SQL y migración de registros.
 
 El estado verificable más reciente se mantiene en [`docs/p1-status.md`](docs/p1-status.md). Los archivos generados bajo `output/` son locales y están excluidos de Git.
@@ -72,7 +72,18 @@ El scan inspecciona las tablas, obtiene hasta 20 registros por tabla para análi
 npm run dev
 ```
 
-Después abre [http://127.0.0.1:3000](http://127.0.0.1:3000). La interfaz permite navegar todas las tablas, inspeccionar campos, filtrar relaciones, usar el grafo de vecinos directos, revisar calidad e iniciar un reescaneo local.
+Después abre [http://127.0.0.1:3000](http://127.0.0.1:3000). La interfaz permite navegar todas las tablas, documentar su significado y uso, revisar campos y relaciones, registrar consumidores, aprobar propuestas externas, buscar en todo el catálogo y exportar conocimiento seguro.
+
+### Importar propuestas de `data-reporting-kit`
+
+La importación solo acepta mapeos Ninox explícitos por ID. Primero revisa el resultado sin escribir y luego importa candidatos pendientes:
+
+```sh
+npm run catalog:import -- --path /absolute/path/to/data-reporting-kit --dry-run
+npm run catalog:import -- --path /absolute/path/to/data-reporting-kit
+```
+
+Los candidatos no se convierten en conocimiento revisado hasta que una persona los acepte en **Usage & Review**. Repetir el comando conserva decisiones si el archivo fuente no cambió.
 
 ### Comandos principales
 
@@ -85,6 +96,7 @@ Después abre [http://127.0.0.1:3000](http://127.0.0.1:3000). La interfaz permit
 | `npm run quality:report` | Regenera el reporte de calidad desde evidencia local. |
 | `npm run diagnose:unresolved -- UC` | Revisa una referencia no resuelta usando solo GET aprobados. |
 | `npm run shop:map` | Regenera el filtro histórico del área Shop. |
+| `npm run catalog:import -- --path /ruta [--dry-run]` | Importa mapeos explícitos como candidatos externos revisables. |
 | `npm run agent:loop -- --task "..." --dry-run` | Muestra el routing de agentes sin ejecutar el trabajo. |
 | `npm run typecheck` | Valida TypeScript. |
 | `npm test` | Ejecuta las pruebas automatizadas. |
@@ -102,13 +114,17 @@ Cliente y configuración de servidor
 Scanner ──► schema / samples / relationships / quality / history
           │
           ▼
+Catálogo local revisado ◄── candidatos externos explícitos
+          │
+          ▼
 Next.js Server Component ──► explorador local
 ```
 
 - `src/ninox/`: configuración, cliente GET-only, tipos y sanitización de errores.
 - `src/scanner/`: descubrimiento, relaciones, calidad, historial y diagnósticos.
 - `src/cli/`: comandos ejecutables desde npm.
-- `app/`: interfaz Next.js y Server Action de reescaneo.
+- `src/catalog/`: tipos versionados, validación, persistencia atómica, importación y exportación segura.
+- `app/`: interfaz Next.js y Server Actions de reescaneo y revisión local.
 - `docs/`: contrato, decisiones, evidencia y referencias técnicas.
 - `.agents/`: skill y workflow Coordinator → Builder → Verifier.
 
@@ -125,6 +141,9 @@ El scan escribe, entre otros:
 - `output/history/latest-diff.json`
 - `output/history/snapshots/*.json`
 - `output/samples/*.json`
+- `output/review/annotations.json`
+- `output/review/exports/catalog.json`
+- `output/review/exports/catalog.md`
 
 Las muestras pueden contener datos reales. Todo `output/` permanece fuera de Git y no debe enviarse al frontend salvo mediante transformaciones explícitamente seguras.
 
