@@ -86,7 +86,8 @@ describe("relationship explorer SSR", () => {
     });
     const html = renderToString(createElement(RelationshipExplorer, { data: { ...data, declared } }));
     expect(html).toContain("Declared reporting catalog");
-    expect(html).toContain("schema 3.2.0");
+    expect(html).toContain("Declared reporting catalog · schema");
+    expect(html).toContain("3.2.0");
     expect(html).toContain("Use a LEFT JOIN from history to current trucks.");
     expect(html).toContain("GitHub 404");
     expect(html).toContain("These are not Ninox ref/rev edges.");
