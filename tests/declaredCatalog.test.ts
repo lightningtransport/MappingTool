@@ -22,7 +22,11 @@ describe("declared reporting catalog", () => {
     expect(declared.tables.find((table) => table.tableId === "E")?.fields.find((field) => field.fieldId === "A")?.presence).toBe("in-schema");
     expect(declared.tables.find((table) => table.tableId === "WD")?.fields.find((field) => field.fieldId === "IA")).toMatchObject({ reportField: "Truck_Number", binding: "documented", presence: "absent" });
     expect(declared.tables.find((table) => table.tableId === "S")?.fields.find((field) => field.fieldId === "E3")?.binding).toBe("source-omission");
-    expect(declared.repositories.find((repo) => repo.id === "ltl-shop")?.status).toBe("unavailable");
+    expect(declared.repositories.find((repo) => repo.id === "ltl-shop")?.status).toBe("verified-remote");
+    expect(declared.shopApp?.defaultBranch).toBe("main");
+    expect(declared.shopApp?.runtimeDataSource).toBe("supabase");
+    expect(declared.shopApp?.ninoxTableIds).toEqual([]);
+    expect(declared.shopApp?.yardPhases).toContain("shop_work");
     expect(declared.joinRules.some((rule) => rule.includes("fuel.Unit"))).toBe(true);
     expect(declaredAnchorTableId(declared)).toBe("E");
   });

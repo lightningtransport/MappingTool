@@ -42,10 +42,23 @@ export interface DeclaredCatalogView {
   tableIds: string[];
   joinRules: string[];
   notes: string[];
+  shopApp: DeclaredShopApp | null;
   presentTableCount: number;
   absentTableCount: number;
   unknownTableCount: number;
   issue: string | null;
+}
+
+export interface DeclaredShopApp {
+  label: string;
+  defaultBranch: string;
+  verifiedCommit: string;
+  verifiedAt: string;
+  runtimeDataSource: string;
+  vehicleKey: string;
+  ninoxTableIds: string[];
+  yardPhases: string[];
+  workOrderStatuses: string[];
 }
 
 type UnknownRecord = Record<string, unknown>;
@@ -74,6 +87,7 @@ export function emptyDeclaredCatalog(issue: string | null = null): DeclaredCatal
     tableIds: [],
     joinRules: [],
     notes: [],
+    shopApp: null,
     presentTableCount: 0,
     absentTableCount: 0,
     unknownTableCount: 0,
@@ -149,10 +163,27 @@ export function reconcileDeclaredCatalog(raw: unknown, schema: NinoxTableSchema[
     tableIds,
     joinRules: strings(root.joinRules),
     notes: strings(root.notes),
+    shopApp: parseShopApp(root.shopApp),
     presentTableCount: tables.filter((table) => table.presence === "in-schema").length,
     absentTableCount: tables.filter((table) => table.presence === "absent").length,
     unknownTableCount: tables.filter((table) => table.presence === "unknown-id").length,
     issue: null,
+  };
+}
+
+function parseShopApp(raw: unknown): DeclaredShopApp | null {
+  const shop = record(raw);
+  if (!shop) return null;
+  return {
+    label: text(shop.label) || "Lightning Shop",
+    defaultBranch: text(shop.defaultBranch) || "Unknown",
+    verifiedCommit: text(shop.verifiedCommit) || "Unknown",
+    verifiedAt: text(shop.verifiedAt) || "Unknown",
+    runtimeDataSource: text(shop.runtimeDataSource) || "Unknown",
+    vehicleKey: text(shop.vehicleKey) || "Unknown",
+    ninoxTableIds: strings(shop.ninoxTableIds),
+    yardPhases: strings(shop.yardPhases),
+    workOrderStatuses: strings(shop.workOrderStatuses),
   };
 }
 

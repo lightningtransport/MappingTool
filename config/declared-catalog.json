@@ -25,9 +25,9 @@
     {
       "id": "ltl-shop",
       "url": "https://github.com/lightningtransport/LTL_Shop",
-      "role": "Shop application requested for cross-check",
-      "status": "unavailable",
-      "reason": "GitHub 404; not present in the public lightningtransport organization"
+      "role": "Mechanic work-order / yard app (NestJS + Next.js + Prisma/Supabase)",
+      "status": "verified-remote",
+      "reason": "Private. Cursor GitHub App token is scoped to MappingTool only (installation lists 1 repo; authenticated git ls-remote and GET /repos/lightningtransport/LTL_Shop return 404). Verified via Vercel Git (default branch main, production SHA 0f560c1) and live API health."
     }
   ],
   "tables": [
@@ -131,15 +131,28 @@
     "returns.Ninox_ID identifies the Returns source record and is not a driver ID. Do not join it to drivers.Ninox_ID.",
     "CDL is the unique driver key across drivers and DriverPay. Truck number is the vehicle key across documented field variants.",
     "returns.CDL is a sensitive exact driver key; use it only when it matches a verified CDL in related approved data. Do not substitute a name, Supabase ID, or returns.Ninox_ID.",
-    "fuel.Unit is a numeric historic truck identifier. Normalize and LEFT JOIN to trucks.truck_number. The kit does not declare a Ninox table ID for fuel."
+    "fuel.Unit is a numeric historic truck identifier. Normalize and LEFT JOIN to trucks.truck_number. The kit does not declare a Ninox table ID for fuel.",
+    "LTL_Shop identifies vehicles by truckNumber. That is a business-key match to kit trucks.truck_number / Ninox E.A, not a Ninox ref/rev edge."
   ],
   "notes": [
     "These mappings are external reporting-kit evidence, not Ninox ref/rev metadata.",
     "metadata.ts SCHEMA_VERSION remains 3.2.0 (verified 2026-09-14). Kit changelog HEAD is 3.8.23 (2026-09-17) and does not add new explicit Ninox table IDs.",
     "DriverPay.Truck_Number is documented as Ninox WD.IA in kit meaning and data-dictionary, but metadata.ts does not set ninox_field, so catalog:import still ignores it.",
     "settlements.tonu is only a related Ninox concept (DE.M1 / Facturado Compass), not an explicit ninox_field mapping.",
-    "mechanic_status (E.TA) is the kit's current shop-status field on TrucksDB; LTL_Shop schema could not be read (GitHub 404).",
+    "mechanic_status (E.TA) is the kit's current shop-status field on TrucksDB. LTL_Shop yard status is a Work Plan / YardBoardPhase, not that Ninox field.",
     "Schedule_Teams is a live Ninox share used by reporting, not a mapped table ID in metadata.ts.",
-    "Settlement Trucks 1/2/3 are owner-expense allocation labels in Facturacion, not separate Ninox tables."
-  ]
+    "Settlement Trucks 1/2/3 are owner-expense allocation labels in Facturacion, not separate Ninox tables.",
+    "LTL_Shop production health reports dataSource=supabase. Client bundles contain no Ninox table or field IDs, so Shop Prisma models are not drawn as Ninox edges."
+  ],
+  "shopApp": {
+    "label": "Lightning Shop",
+    "defaultBranch": "main",
+    "verifiedCommit": "0f560c1cafd12463cf95e24904af4f5da821e68d",
+    "verifiedAt": "2026-09-19T23:00:40Z",
+    "runtimeDataSource": "supabase",
+    "vehicleKey": "truckNumber",
+    "ninoxTableIds": [],
+    "yardPhases": ["inspection", "shop_work", "alignment", "detailing", "quality_check", "ready_to_go"],
+    "workOrderStatuses": ["created", "in_progress", "waiting_paused", "completed", "cancelled"]
+  }
 }

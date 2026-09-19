@@ -42,7 +42,8 @@ La única conclusión respaldada es `unresolved`. No se puede afirmar si la tabl
 - Lista y grafo SVG de relaciones directas, incluyendo un estado vacío cuando no hay vecinos.
 - Filtros por procedencia, dirección, alcance histórico Shop (TrucksDB / `E`) y alcance **Reporting kit** (`E`, `WD`, `Z`, `S`, `DE` según `config/declared-catalog.json`).
 - Las join rules del data-reporting-kit se muestran como notas externas; no se convierten en aristas Ninox.
-- El overlay declarado distingue `ninox_field`, IDs documentados en prosa (`WD.IA`) y omisiones de extracto (`S.E3`, `S.J3`, `S.K3`). `LTL_Shop` permanece `unavailable`.
+- El overlay declarado distingue `ninox_field`, IDs documentados en prosa (`WD.IA`) y omisiones de extracto (`S.E3`, `S.J3`, `S.K3`).
+- `LTL_Shop` se verificó como app de work orders (runtime `supabase`, fases Work Plan). El token GitHub App de este agente solo instala MappingTool, así que el Prisma schema no se leyó por git; no se inventan aristas Ninox desde esa app.
 - El scan CLI y el Rescan regeneran `output/analysis/shop-map.json` junto con schema, relaciones y calidad.
 - Artefactos de scan ausentes o ilegibles se muestran como alerta; la página no falla.
 - Reporte de calidad con tablas aisladas e hipótesis.
