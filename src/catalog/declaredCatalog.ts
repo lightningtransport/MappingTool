@@ -1,6 +1,9 @@
 import type { NinoxTableSchema } from "../ninox/types.js";
 
-export type DeclaredRepositoryStatus = "this-repo" | "verified-remote" | "unavailable";
+export type DeclaredRepositoryStatus = "this-repo" | "verified-remote" | "repo-verified" | "unavailable";
+
+const DECLARED_REPOSITORY_STATUSES: readonly DeclaredRepositoryStatus[] = ["this-repo", "verified-remote", "repo-verified", "unavailable"];
+
 export type DeclaredPresence = "in-schema" | "absent" | "unknown-id";
 export type DeclaredFieldBinding = "ninox_field" | "documented" | "source-omission";
 
@@ -141,7 +144,7 @@ export function reconcileDeclaredCatalog(raw: unknown, schema: NinoxTableSchema[
   const repositories = (Array.isArray(root.repositories) ? root.repositories : []).flatMap((item) => {
     const repo = record(item);
     if (!repo) return [];
-    const status = repo.status === "this-repo" || repo.status === "verified-remote" || repo.status === "unavailable" ? repo.status : "unavailable";
+    const status = DECLARED_REPOSITORY_STATUSES.includes(repo.status as DeclaredRepositoryStatus) ? repo.status as DeclaredRepositoryStatus : "unavailable";
     return [{
       id: text(repo.id) || "Unknown",
       url: text(repo.url) || "Unknown",

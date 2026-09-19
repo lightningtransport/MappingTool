@@ -83,7 +83,7 @@ describe("relationship explorer SSR", () => {
       tables: [{ report: "trucks", ninoxName: "TrucksDB", tableId: "A", grain: "One truck", fields: [] }],
       joinRules: ["Use a LEFT JOIN from history to current trucks."],
       notes: ["DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field."],
-      shopApp: { label: "Lightning Shop", defaultBranch: "main", runtimeDataSource: "supabase", vehicleKey: "truckNumber", ninoxTableIds: [], yardPhases: ["shop_work"], workOrderStatuses: [] },
+      shopApp: { label: "Lightning Shop", defaultBranch: "main", verifiedCommit: "0f560c1cafd12463cf95e24904af4f5da821e68d", runtimeDataSource: "supabase", vehicleKey: "truckNumber", ninoxTableIds: [], yardPhases: ["shop_work"], workOrderStatuses: [] },
     }, [{ id: "A", name: "Fleet trucks", fields: [] }]);
     const html = renderToString(createElement(RelationshipExplorer, { data: { ...data, declared } }));
     expect(html).toContain("Declared reporting catalog");
@@ -98,6 +98,8 @@ describe("relationship explorer SSR", () => {
     expect(html).toContain("DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field.");
     expect(html).toContain("scan name Fleet trucks");
     expect(html).toContain("Lightning Shop");
+    expect(html).toContain("Repo-verified");
+    expect(html).toContain("0f560c1cafd12463cf95e24904af4f5da821e68d");
     expect(html).toContain("shop_work");
     expect(html).toContain("none found");
   });

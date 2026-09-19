@@ -26,8 +26,8 @@
       "id": "ltl-shop",
       "url": "https://github.com/lightningtransport/LTL_Shop",
       "role": "Mechanic work-order / yard app (NestJS + Next.js + Prisma/Supabase)",
-      "status": "verified-remote",
-      "reason": "Private. Cursor GitHub App token is scoped to MappingTool only (installation lists 1 repo; authenticated git ls-remote and GET /repos/lightningtransport/LTL_Shop return 404). Verified via Vercel Git (default branch main, production SHA 0f560c1) and live API health."
+      "status": "repo-verified",
+      "reason": "Prisma was read at apps/api/prisma/schema.prisma on main @ 0f560c1; runtime supabase; zero Ninox table IDs."
     }
   ],
   "tables": [
@@ -142,13 +142,13 @@
     "mechanic_status (E.TA) is the kit's current shop-status field on TrucksDB. LTL_Shop yard status is a Work Plan / YardBoardPhase, not that Ninox field.",
     "Schedule_Teams is a live Ninox share used by reporting, not a mapped table ID in metadata.ts.",
     "Settlement Trucks 1/2/3 are owner-expense allocation labels in Facturacion, not separate Ninox tables.",
-    "LTL_Shop production health reports dataSource=supabase. Client bundles contain no Ninox table or field IDs, so Shop Prisma models are not drawn as Ninox edges."
+    "LTL_Shop was repo-verified at apps/api/prisma/schema.prisma on main @ 0f560c1cafd12463cf95e24904af4f5da821e68d: runtime supabase, zero Ninox table IDs. Shop Prisma models and yard phases are not drawn as Ninox edges."
   ],
   "shopApp": {
     "label": "Lightning Shop",
     "defaultBranch": "main",
     "verifiedCommit": "0f560c1cafd12463cf95e24904af4f5da821e68d",
-    "verifiedAt": "2026-09-19T23:00:40Z",
+    "verifiedAt": "2026-09-19T23:30:00Z",
     "runtimeDataSource": "supabase",
     "vehicleKey": "truckNumber",
     "ninoxTableIds": [],
