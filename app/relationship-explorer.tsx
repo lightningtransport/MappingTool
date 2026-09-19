@@ -44,6 +44,7 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   const [selectedField, setSelectedField] = useState<string | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<ExplorerRelationship | null>(null);
   const [tab, setTab] = useState<CatalogTab>("overview");
+  const [declaredOpen, setDeclaredOpen] = useState(() => Boolean(data.declared?.issue) || Boolean(data.loadIssue) || data.tables.length === 0);
 
   const shopIds = useMemo(() => new Set(data.shopMap.nodes.map((node) => node.tableId)), [data.shopMap.nodes]);
   const reportingIds = useMemo(() => new Set(data.declared?.tableIds ?? []), [data.declared?.tableIds]);
@@ -52,7 +53,15 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   const tableQuery = query.trim().toLowerCase();
   const searchResults = useMemo(() => searchCatalog(data, query), [data, query]);
   const visibleTables = tables.filter((table) => !tableQuery || `${table.name} ${table.id}`.toLowerCase().includes(tableQuery));
-  const selectedNode = data.tables.find((table) => table.id === selectedTable) ?? { id: selectedTable, name: "Unresolved table", relationshipCount: 0, fields: [] };
+  const selectedDeclared = declaredTablesForId(data.declared, selectedTable);
+  const emptyCatalog = data.tables.length === 0;
+  const noLocalScan = Boolean(data.loadIssue) || emptyCatalog;
+  const selectedNode = data.tables.find((table) => table.id === selectedTable) ?? {
+    id: selectedTable,
+    name: selectedDeclared[0]?.ninoxName ?? (emptyCatalog ? "No scanned table" : "Unresolved table"),
+    relationshipCount: 0,
+    fields: [],
+  };
   const relationships = scopedRelationships(scope, data.relationships, data.shopMap.edges, reportingIds);
   const visibleEdges = useMemo(() => filterRelationships(relationships, source, direction, selectedTable), [relationships, source, direction, selectedTable]);
   const graph = useMemo(() => relationshipGraph(selectedTable, selectedNode.name, visibleEdges), [selectedTable, selectedNode.name, visibleEdges]);
@@ -112,8 +121,11 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
     setTab("relationships");
   }
 
-  const selectedDeclared = declaredTablesForId(data.declared, selectedTable);
-  const emptyCatalog = data.tables.length === 0;
+  const qualityStatus = noLocalScan
+    ? "NO LOCAL SCAN"
+    : data.quality.scanErrors.length === 0
+      ? "SCAN COMPLETE"
+      : `${data.quality.scanErrors.length} SCAN ERROR${data.quality.scanErrors.length === 1 ? "" : "S"}`;
 
   return <main className="shell">
     <header className="topbar">
@@ -121,12 +133,12 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
       <div className="topbar-actions"><div className="readonly"><span className="status-dot" /> READ ONLY TO NINOX</div><RescanControl /></div>
     </header>
 
-    {data.loadIssue && <div className="catalog-alert error" role="alert"><strong>Scan artifacts need attention.</strong> {data.loadIssue}</div>}
+    {data.loadIssue && <div className="catalog-alert error" role="alert"><strong>Scan artifacts need attention.</strong> {data.loadIssue} The declared catalog overlay from config/declared-catalog.json still loads.</div>}
     {data.catalog.issue && <div className="catalog-alert error" role="alert"><strong>Catalog file needs attention.</strong> {data.catalog.issue}</div>}
-    {emptyCatalog && !data.loadIssue && <div className="catalog-alert" role="status"><strong>No local scan yet.</strong> Relationship Explorer reads output/schema.json and output/relationships.json. Run npm run scan or Rescan after configuring .env.local.</div>}
+    {emptyCatalog && !data.loadIssue && <div className="catalog-alert" role="status"><strong>No local scan yet.</strong> Relationship Explorer reads output/schema.json and output/relationships.json. Run npm run scan or Rescan after configuring .env.local. The declared catalog overlay from config/declared-catalog.json still loads.</div>}
 
     <section className="hero-grid catalog-metrics" aria-label="Catalog coverage">
-      <div className="database-card"><div className="card-label">DATABASE SCOPE</div><div className="database-name">Complete Ninox database</div><div className="database-note">{data.summary.tableCount} tables · {data.summary.fieldCount} fields · {data.summary.relationshipCount} relationships</div></div>
+      <div className="database-card"><div className="card-label">DATABASE SCOPE</div><div className="database-name">{noLocalScan ? "No local Ninox scan" : "Complete Ninox database"}</div><div className="database-note">{noLocalScan ? "Declared catalog overlay still loads from config/declared-catalog.json." : `${data.summary.tableCount} tables · ${data.summary.fieldCount} fields · ${data.summary.relationshipCount} relationships`}</div></div>
       <div className="metric-card"><span>REVIEWED TABLES</span><strong>{data.catalog.coverage.reviewedTables}</strong><small>of {data.summary.tableCount}</small></div>
       <div className="metric-card"><span>DOCUMENTED FIELDS</span><strong>{data.catalog.coverage.documentedFields}</strong><small>human or approved context</small></div>
       <div className="metric-card"><span>PENDING REVIEW</span><strong className="amber">{data.catalog.coverage.pendingCandidates + data.catalog.coverage.pendingRelationships}</strong><small>candidates + decisions</small></div>
@@ -135,7 +147,7 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
     <div className="knowledge-legend" aria-label="Knowledge provenance legend"><EvidenceBadge kind="evidence" /><EvidenceBadge kind="reviewed" /><EvidenceBadge kind="external" /><EvidenceBadge kind="unknown" /></div>
 
     <section className="quality-panel" aria-labelledby="quality-heading">
-      <div className="quality-heading"><div><div className="card-label">MAP QUALITY</div><h2 id="quality-heading">Evidence coverage</h2></div><span className="quality-status">{data.quality.scanErrors.length === 0 ? "SCAN COMPLETE" : `${data.quality.scanErrors.length} SCAN ERROR${data.quality.scanErrors.length === 1 ? "" : "S"}`}</span></div>
+      <div className="quality-heading"><div><div className="card-label">MAP QUALITY</div><h2 id="quality-heading">Evidence coverage</h2></div><span className={`quality-status${noLocalScan ? " missing" : ""}`}>{qualityStatus}</span></div>
       <div className="quality-metrics">
         <div><span>CONNECTED TABLES</span><strong>{data.quality.tables.connected}</strong><small>of {data.quality.tables.total}</small></div>
         <div><span>ISOLATED TABLES</span><strong>{data.quality.tables.isolated}</strong><small>no resolved edge</small></div>
@@ -156,10 +168,10 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
       {data.history.length === 0 ? <p>History will begin with the next scan.</p> : data.history.slice(0, 5).map((entry) => <details className="history-entry" key={entry.toScannedAt}><summary><span><b><code>{entry.toScannedAt}</code></b><small>{entry.baseline ? "baseline" : `${entry.summary.total} structural changes`}</small></span></summary>{entry.highlights.length ? <ul>{entry.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : <p>No structural changes in this comparison.</p>}</details>)}
     </details>
 
-    {data.declared && <details className="evidence-drawer declared-catalog" open={Boolean(data.declared.issue)}>
+    {data.declared && <details className="evidence-drawer declared-catalog" open={declaredOpen} onToggle={(event) => setDeclaredOpen(event.currentTarget.open)}>
       <summary>Declared reporting catalog · schema {data.declared.schemaVersion}{data.declared.kitPackageVersion !== "Unknown" ? ` · kit ${data.declared.kitPackageVersion}` : ""}</summary>
       {data.declared.issue && <p className="catalog-alert error" role="alert">{data.declared.issue}</p>}
-      <p>External mappings from {data.declared.sourceLabel}. These are not Ninox ref/rev edges.</p>
+      <p>Source of truth: <code>config/declared-catalog.json</code>. External mappings from {data.declared.sourceLabel}. These are not Ninox ref/rev edges.</p>
       <div className="evidence-summary">
         <span>Present in scan <b>{data.declared.presentTableCount}</b></span>
         <span>Absent from scan <b>{data.declared.absentTableCount}</b></span>
@@ -179,7 +191,7 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
         <div className="section-heading"><span>{scope === "shop" ? "TRUCKSDB AREA" : scope === "reporting" ? "REPORTING KIT" : "DATA ASSETS"}</span><em>{tables.length}</em></div>
         <label className="search-label">Search catalog<input aria-label="Search catalog" placeholder="Name, ID, meaning, tag, use…" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
         <div className="scope-control three" role="group" aria-label="Database scope"><button className={scope === "all" ? "selected" : ""} aria-pressed={scope === "all"} onClick={() => changeScope("all")}>All database</button><button className={scope === "shop" ? "selected" : ""} aria-pressed={scope === "shop"} onClick={() => changeScope("shop")}>TrucksDB area</button><button className={scope === "reporting" ? "selected" : ""} aria-pressed={scope === "reporting"} onClick={() => changeScope("reporting")}>Reporting kit</button></div>
-        {query.trim() && searchResults.length > 0 ? <div className="search-results" aria-label="Catalog search results">{searchResults.map((result, index) => <button key={`${result.kind}:${result.tableId}:${result.fieldId ?? index}`} onClick={() => navigate(result.tableId, result.kind === "consumer" ? "usage" : "overview", result.fieldId)}><span><b>{result.label}</b><small>{result.kind} · {result.detail}</small></span><EvidenceBadge kind={result.provenance === "Human reviewed" ? "reviewed" : result.provenance === "External candidate" ? "external" : "evidence"} /></button>)}</div> : <div className="table-list">{visibleTables.length === 0 ? <div className="empty-state">{query.trim() ? "No catalog matches." : scope === "shop" ? "No TrucksDB-area tables in the current scan." : scope === "reporting" ? "No reporting-kit tables in the current scan." : "No tables loaded."}</div> : visibleTables.map((table) => <button className={`table-row ${selectedTable === table.id ? "active" : ""}`} key={table.id} onClick={() => navigate(table.id, "overview")}><span className="node-mark" /><span><b>{table.name}</b><small>{table.id} · {table.fields.length} fields</small></span><span className="chevron">›</span></button>)}</div>}
+        {query.trim() && searchResults.length > 0 ? <div className="search-results" aria-label="Catalog search results">{searchResults.map((result, index) => <button key={`${result.kind}:${result.tableId}:${result.fieldId ?? index}`} onClick={() => navigate(result.tableId, result.kind === "consumer" ? "usage" : "overview", result.fieldId)}><span><b>{result.label}</b><small>{result.kind} · {result.detail}</small></span><EvidenceBadge kind={result.provenance === "Human reviewed" ? "reviewed" : result.provenance === "External candidate" ? "external" : "evidence"} /></button>)}</div> : <div className="table-list">{visibleTables.length === 0 ? <div className="empty-state">{query.trim() ? "No catalog matches." : scope === "shop" ? "No TrucksDB-area tables in the current scan. Shop overlay stays in the declared catalog below." : scope === "reporting" ? "No reporting-kit tables in the current scan. Declared IDs stay in config/declared-catalog.json." : "No tables loaded. Run npm run scan after .env.local, or use the declared catalog overlay."}</div> : visibleTables.map((table) => <button className={`table-row ${selectedTable === table.id ? "active" : ""}`} key={table.id} onClick={() => navigate(table.id, "overview")}><span className="node-mark" /><span><b>{table.name}</b><small>{table.id} · {table.fields.length} fields</small></span><span className="chevron">›</span></button>)}</div>}
       </aside>
 
       <section className="content">

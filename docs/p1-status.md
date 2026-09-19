@@ -27,7 +27,8 @@ Las cifras se reconcilian entre `schema.json`, `relationships.json`, `scan-summa
 | P1: historial estructural | Snapshots y diffs locales integrados al scan y al explorador. | `9e96b09`, `8291e95` |
 | P1 hito 0: workflow | Routing Luna → Terra y reglas P1. | `b56d733` |
 | P1 hito 1: inspector | Campos, tipos, opciones y navegación `ref`/`rev`. | `805eaa6` |
-| P1.2: catálogo técnico | Anotaciones persistentes, relaciones revisables, consumidores, importación externa, búsqueda y exportación segura. | Cambio local pendiente de commit |
+| P1.2: catálogo técnico | Anotaciones persistentes, relaciones revisables, consumidores, importación externa, búsqueda y exportación segura. | `8d007ba` |
+| P1: Relationship Explorer | Alcances Shop + Reporting kit, overlay declarado y empty-scan sin crash. Fuente de verdad: `config/declared-catalog.json`. | `b15f5be` |
 
 ## Referencia no resuelta `UC`
 
