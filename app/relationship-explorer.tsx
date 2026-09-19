@@ -11,9 +11,10 @@ import {
   RelationshipReviewForm,
   TableReviewForm,
 } from "./catalog-forms.js";
+import { declaredAnchorTableId, declaredTablesForId, emptyDeclaredCatalog } from "../src/catalog/declaredCatalog.js";
 import {
   filterRelationships,
-  preserveShopScope,
+  preserveExplorerScope,
   searchCatalog,
   scopedRelationships,
   tableIdForShopScope,
@@ -21,6 +22,7 @@ import {
   type ExplorerData,
   type ExplorerField,
   type ExplorerRelationship,
+  type ExplorerScope,
   type RelationshipSource,
 } from "./explorer-data.js";
 import { graphNeighborForEdge, relationshipGraph } from "./relationship-graph-model.js";
@@ -35,7 +37,7 @@ function EvidenceBadge({ kind }: { kind: "evidence" | "reviewed" | "external" | 
 
 export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   const [query, setQuery] = useState("");
-  const [scope, setScope] = useState<"shop" | "all">("all");
+  const [scope, setScope] = useState<ExplorerScope>("all");
   const [source, setSource] = useState<RelationshipSource | "all">("all");
   const [direction, setDirection] = useState<Direction>("all");
   const [selectedTable, setSelectedTable] = useState(data.tables[0]?.id ?? data.shopMap.anchor.tableId);
@@ -43,13 +45,15 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   const [selectedEdge, setSelectedEdge] = useState<ExplorerRelationship | null>(null);
   const [tab, setTab] = useState<CatalogTab>("overview");
 
-  const scopeIds = useMemo(() => new Set(data.shopMap.nodes.map((node) => node.tableId)), [data.shopMap.nodes]);
+  const shopIds = useMemo(() => new Set(data.shopMap.nodes.map((node) => node.tableId)), [data.shopMap.nodes]);
+  const reportingIds = useMemo(() => new Set(data.declared?.tableIds ?? []), [data.declared?.tableIds]);
+  const scopeIds = scope === "reporting" ? reportingIds : shopIds;
   const tables = data.tables.filter((table) => scope === "all" || scopeIds.has(table.id));
   const tableQuery = query.trim().toLowerCase();
   const searchResults = useMemo(() => searchCatalog(data, query), [data, query]);
   const visibleTables = tables.filter((table) => !tableQuery || `${table.name} ${table.id}`.toLowerCase().includes(tableQuery));
   const selectedNode = data.tables.find((table) => table.id === selectedTable) ?? { id: selectedTable, name: "Unresolved table", relationshipCount: 0, fields: [] };
-  const relationships = scopedRelationships(scope, data.relationships, data.shopMap.edges);
+  const relationships = scopedRelationships(scope, data.relationships, data.shopMap.edges, reportingIds);
   const visibleEdges = useMemo(() => filterRelationships(relationships, source, direction, selectedTable), [relationships, source, direction, selectedTable]);
   const graph = useMemo(() => relationshipGraph(selectedTable, selectedNode.name, visibleEdges), [selectedTable, selectedNode.name, visibleEdges]);
   const selectedFieldData = selectedNode.fields.find((field) => field.id === selectedField) ?? null;
@@ -65,7 +69,8 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
   };
 
   function navigate(tableId: string, nextTab: CatalogTab = tab, fieldId: string | null = null, edge: ExplorerRelationship | null = null) {
-    setScope(preserveShopScope(scope, tableId, scopeIds));
+    if (!tableId) return;
+    setScope(preserveExplorerScope(scope, tableId, scopeIds));
     setSelectedTable(tableId);
     setSelectedField(fieldId);
     setSelectedEdge(edge);
@@ -73,9 +78,10 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
     setQuery("");
   }
 
-  function changeScope(next: "shop" | "all") {
+  function changeScope(next: ExplorerScope) {
     setScope(next);
-    if (next === "shop") setSelectedTable(tableIdForShopScope(selectedTable, scopeIds, data.shopMap.anchor.tableId));
+    if (next === "shop") setSelectedTable(tableIdForShopScope(selectedTable, shopIds, data.shopMap.anchor.tableId));
+    if (next === "reporting") setSelectedTable(tableIdForShopScope(selectedTable, reportingIds, declaredAnchorTableId(data.declared ?? emptyDeclaredCatalog(), data.shopMap.anchor.tableId)));
     setSelectedEdge(null);
   }
 
@@ -106,6 +112,7 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
     setTab("relationships");
   }
 
+  const selectedDeclared = declaredTablesForId(data.declared, selectedTable);
   const emptyCatalog = data.tables.length === 0;
 
   return <main className="shell">
@@ -149,14 +156,29 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
       {data.history.length === 0 ? <p>History will begin with the next scan.</p> : data.history.slice(0, 5).map((entry) => <details className="history-entry" key={entry.toScannedAt}><summary><span><b><code>{entry.toScannedAt}</code></b><small>{entry.baseline ? "baseline" : `${entry.summary.total} structural changes`}</small></span></summary>{entry.highlights.length ? <ul>{entry.highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul> : <p>No structural changes in this comparison.</p>}</details>)}
     </details>
 
+    {data.declared && <details className="evidence-drawer declared-catalog" open={Boolean(data.declared.issue)}>
+      <summary>Declared reporting catalog · schema {data.declared.schemaVersion}{data.declared.kitPackageVersion !== "Unknown" ? ` · kit ${data.declared.kitPackageVersion}` : ""}</summary>
+      {data.declared.issue && <p className="catalog-alert error" role="alert">{data.declared.issue}</p>}
+      <p>External mappings from {data.declared.sourceLabel}. These are not Ninox ref/rev edges.</p>
+      <div className="evidence-summary">
+        <span>Present in scan <b>{data.declared.presentTableCount}</b></span>
+        <span>Absent from scan <b>{data.declared.absentTableCount}</b></span>
+        <span>Unknown table ID <b>{data.declared.unknownTableCount}</b></span>
+      </div>
+      <ul className="declared-repos">{data.declared.repositories.map((repo) => <li key={repo.id}><code>{repo.status}</code> {repo.url} — {repo.role}{repo.reason ? ` (${repo.reason})` : ""}</li>)}</ul>
+      <ul className="declared-tables">{data.declared.tables.map((table) => <li key={table.report}><button type="button" onClick={() => table.tableId && navigate(table.tableId, "overview")}><b>{table.ninoxName}</b> <small>{table.tableId ?? "Unknown"} · {table.report} · {table.presence}</small></button></li>)}</ul>
+      {data.declared.joinRules.length > 0 && <div className="declared-joins"><h3>Documented reporting joins</h3><ul>{data.declared.joinRules.map((rule) => <li key={rule}>{rule}</li>)}</ul></div>}
+      {data.declared.notes.length > 0 && <div className="declared-joins"><h3>Catalog notes</h3><ul>{data.declared.notes.map((note) => <li key={note}>{note}</li>)}</ul></div>}
+    </details>}
+
     {data.catalog.orphans.length > 0 && <details className="catalog-alert"><summary>{data.catalog.orphans.length} preserved orphan annotations require review</summary><ul>{data.catalog.orphans.map((orphan) => <li key={`${orphan.kind}:${orphan.key}`}><code>{orphan.key}</code> — {orphan.reason}</li>)}</ul></details>}
 
     <section className="workspace">
       <aside className="sidebar">
-        <div className="section-heading"><span>{scope === "shop" ? "TRUCKSDB AREA" : "DATA ASSETS"}</span><em>{tables.length}</em></div>
+        <div className="section-heading"><span>{scope === "shop" ? "TRUCKSDB AREA" : scope === "reporting" ? "REPORTING KIT" : "DATA ASSETS"}</span><em>{tables.length}</em></div>
         <label className="search-label">Search catalog<input aria-label="Search catalog" placeholder="Name, ID, meaning, tag, use…" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
-        <div className="scope-control" role="group" aria-label="Database scope"><button className={scope === "all" ? "selected" : ""} aria-pressed={scope === "all"} onClick={() => changeScope("all")}>All database</button><button className={scope === "shop" ? "selected" : ""} aria-pressed={scope === "shop"} onClick={() => changeScope("shop")}>TrucksDB area</button></div>
-        {query.trim() && searchResults.length > 0 ? <div className="search-results" aria-label="Catalog search results">{searchResults.map((result, index) => <button key={`${result.kind}:${result.tableId}:${result.fieldId ?? index}`} onClick={() => navigate(result.tableId, result.kind === "consumer" ? "usage" : "overview", result.fieldId)}><span><b>{result.label}</b><small>{result.kind} · {result.detail}</small></span><EvidenceBadge kind={result.provenance === "Human reviewed" ? "reviewed" : "evidence"} /></button>)}</div> : <div className="table-list">{visibleTables.length === 0 ? <div className="empty-state">{query.trim() ? "No catalog matches." : scope === "shop" ? "No TrucksDB-area tables in the current scan." : "No tables loaded."}</div> : visibleTables.map((table) => <button className={`table-row ${selectedTable === table.id ? "active" : ""}`} key={table.id} onClick={() => navigate(table.id, "overview")}><span className="node-mark" /><span><b>{table.name}</b><small>{table.id} · {table.fields.length} fields</small></span><span className="chevron">›</span></button>)}</div>}
+        <div className="scope-control three" role="group" aria-label="Database scope"><button className={scope === "all" ? "selected" : ""} aria-pressed={scope === "all"} onClick={() => changeScope("all")}>All database</button><button className={scope === "shop" ? "selected" : ""} aria-pressed={scope === "shop"} onClick={() => changeScope("shop")}>TrucksDB area</button><button className={scope === "reporting" ? "selected" : ""} aria-pressed={scope === "reporting"} onClick={() => changeScope("reporting")}>Reporting kit</button></div>
+        {query.trim() && searchResults.length > 0 ? <div className="search-results" aria-label="Catalog search results">{searchResults.map((result, index) => <button key={`${result.kind}:${result.tableId}:${result.fieldId ?? index}`} onClick={() => navigate(result.tableId, result.kind === "consumer" ? "usage" : "overview", result.fieldId)}><span><b>{result.label}</b><small>{result.kind} · {result.detail}</small></span><EvidenceBadge kind={result.provenance === "Human reviewed" ? "reviewed" : result.provenance === "External candidate" ? "external" : "evidence"} /></button>)}</div> : <div className="table-list">{visibleTables.length === 0 ? <div className="empty-state">{query.trim() ? "No catalog matches." : scope === "shop" ? "No TrucksDB-area tables in the current scan." : scope === "reporting" ? "No reporting-kit tables in the current scan." : "No tables loaded."}</div> : visibleTables.map((table) => <button className={`table-row ${selectedTable === table.id ? "active" : ""}`} key={table.id} onClick={() => navigate(table.id, "overview")}><span className="node-mark" /><span><b>{table.name}</b><small>{table.id} · {table.fields.length} fields</small></span><span className="chevron">›</span></button>)}</div>}
       </aside>
 
       <section className="content">
@@ -166,6 +188,7 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
         {tab === "overview" && <section className="catalog-section" aria-labelledby="overview-heading">
           <div className="section-intro"><div><div className="card-label">OVERVIEW</div><h3 id="overview-heading">Meaning and governance</h3></div><p>Ninox supplies structure. The fields below are reviewed human knowledge stored locally.</p></div>
           <div className="evidence-facts"><div><span>Table ID</span><b>{selectedNode.id}</b></div><div><span>Fields</span><b>{selectedNode.fields.length}</b></div><div><span>Relationships</span><b>{selectedNode.relationshipCount}</b></div><div><span>Evidence state</span><b>{emptyCatalog ? "Unknown" : "Scanned"}</b></div></div>
+          {selectedDeclared.length > 0 && <div className="declared-joins selected-table-joins"><h4>Reporting-kit mappings for this table</h4>{selectedDeclared.map((table) => <div key={table.report}><p>{table.grain || "Grain Unknown"}</p><ul className="declared-fields">{table.fields.length === 0 ? <li>No explicit Ninox field IDs in the kit for this table.</li> : table.fields.map((field) => <li key={`${field.tableId}:${field.fieldId}:${field.reportField}`}><button type="button" onClick={() => navigate(field.tableId, "fields", field.fieldId)}><b>{field.reportField}</b> <small>{field.tableId}.{field.fieldId} · {field.binding} · {field.presence}</small></button></li>)}</ul></div>)}<p>Business-key join rules stay documented in the declared catalog drawer. They are not drawn as Ninox edges.</p></div>}
           <TableReviewForm tableId={selectedNode.id} review={tableReview} fieldIds={selectedNode.fields.map((field) => field.id)} />
         </section>}
 
@@ -176,7 +199,8 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
         </section>}
 
         {tab === "relationships" && <section className="catalog-section" aria-labelledby="relationships-heading">
-          <div className="section-intro"><div><div className="card-label">RELATIONSHIPS</div><h3 id="relationships-heading">Structural graph and review decisions</h3></div><p>The graph contains tables only. Consumers remain in Usage & Review.</p></div>
+          <div className="section-intro"><div><div className="card-label">RELATIONSHIPS</div><h3 id="relationships-heading">Structural graph and review decisions</h3></div><p>The graph contains Ninox table links only. Reporting-kit joins stay documented below and are not drawn as ref/rev edges.</p></div>
+          {selectedDeclared.length > 0 && <div className="declared-joins selected-table-joins"><h4>Reporting-kit notes for this table</h4>{selectedDeclared.map((table) => <p key={`${table.report}-grain`}>{table.grain || "Grain Unknown"}</p>)}<p>Business-key join rules stay documented in the declared catalog drawer. They are not drawn as Ninox edges.</p></div>}
           <div className="filters"><label>Source<select aria-label="Source filter" value={source} onChange={(event) => setSource(event.target.value as RelationshipSource | "all")}><option value="all">All</option><option value="ninox">Ninox</option><option value="detected">Detected</option><option value="unknown">Unresolved</option></select></label><label>Direction<select aria-label="Direction filter" value={direction} onChange={(event) => setDirection(event.target.value as Direction)}><option value="all">All</option><option value="incoming">Incoming</option><option value="outgoing">Outgoing</option></select></label></div>
           <div className="relationship-layout"><div><div className="graph-panel"><div className="graph-legend"><span className="ninox">Ninox</span><span className="detected">Hypothesis</span><span className="unknown">Unresolved</span></div>{graph.neighbors.length === 0 ? <div className="graph-empty">No direct relationships match these filters.</div> : <svg className="relationship-graph" viewBox="0 0 760 560" role="img" aria-label={`Relationships centered on ${selectedNode.name}`}>{graph.edges.map((edge, index) => { const target = graphNeighborForEdge(graph, edge, selectedTable); if (!target) return null; const targetId = target.id; const parallel = graph.edges.filter((candidate) => { const neighbor = graphNeighborForEdge(graph, candidate, selectedTable); return neighbor?.id === targetId; }); const parallelIndex = parallel.indexOf(edge); const offset = (parallelIndex - (parallel.length - 1) / 2) * 8; const length = Math.hypot(target.x - graph.center.x, target.y - graph.center.y) || 1; const offsetX = (target.y - graph.center.y) / length * offset; const offsetY = (graph.center.x - target.x) / length * offset; return <line key={`${edge.sourceTableId}:${edge.sourceFieldId}:${edge.targetTableId}:${index}`} className={`graph-line ${edge.source}`} x1={graph.center.x + offsetX} y1={graph.center.y + offsetY} x2={target.x + offsetX} y2={target.y + offsetY} />; })}<g className="graph-center"><circle cx={graph.center.x} cy={graph.center.y} r="42" /><text x={graph.center.x} y={graph.center.y}>{graph.center.label}</text></g>{graph.neighbors.map((node) => <g className="graph-neighbor" key={node.id} role="button" tabIndex={0} aria-label={`Select ${node.name}`} onClick={() => navigate(node.id, "relationships")} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") navigate(node.id, "relationships"); }}><circle cx={node.x} cy={node.y} r="30" /><text x={node.x} y={node.y}>{node.label}</text></g>)}</svg>}</div>
           <div className="relation-list">{visibleEdges.length === 0 ? <div className="empty">No relationships match these filters.</div> : visibleEdges.map((edge, index) => { const review = annotations.relationships[relationshipReviewKey(edge.sourceTableId, edge.sourceFieldId, edge.targetTableId)]; return <button className={`relation-card ${selectedEdge === edge ? "selected" : ""}`} key={`${edge.sourceTableId}:${edge.sourceFieldId}:${edge.targetTableId}:${index}`} onClick={() => setSelectedEdge(edge)}><div className="relation-direction"><EvidenceBadge kind={edge.source === "ninox" ? "evidence" : edge.source === "unknown" ? "unknown" : "external"} />{review && <EvidenceBadge kind="reviewed" />}</div><div className="relation-main"><strong>{edge.sourceTable}.{edge.sourceField}</strong><span>→</span><strong>{edge.targetTable}</strong></div><div className="relation-meta"><span>{Math.round(edge.confidence * 100)}% confidence</span><span>{review?.decision ?? "not reviewed"}</span></div></button>; })}</div></div>

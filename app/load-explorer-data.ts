@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { readDeclaredCatalog } from "../src/catalog/declaredCatalog.js";
 import { catalogCoverage, findCatalogOrphans } from "../src/catalog/model.js";
 import { readCatalog } from "../src/catalog/store.js";
 import { buildDataQualityReport, emptyDataQualityReport, type DataQualityReport } from "../src/scanner/dataQuality.js";
@@ -114,6 +115,8 @@ export async function loadExplorerData(root = process.cwd()): Promise<ExplorerDa
   const loadIssue = blockingIssues.length
     ? `Local scan artifacts need attention: ${blockingIssues.join("; ")}. Run npm run scan or Rescan after configuring .env.local.`
     : null;
+  let declared = await readDeclaredCatalog(schemaTables, resolve(root, "config", "declared-catalog.json"));
+  if (declared.issue && root !== process.cwd()) declared = await readDeclaredCatalog(schemaTables);
 
   return {
     generatedAt: scannedAt,
@@ -125,5 +128,6 @@ export async function loadExplorerData(root = process.cwd()): Promise<ExplorerDa
     history: history.map((diff) => summarizeStructuralDiff(diff)).filter((item): item is NonNullable<typeof item> => item !== null),
     catalog: { annotations: catalogState.catalog, coverage: catalogCoverage(catalogState.catalog, orphans), orphans, issue: catalogState.issue },
     loadIssue,
+    declared,
   };
 }

@@ -1,6 +1,6 @@
 # Estado de Ninox Data Mapper P1
 
-Estado verificado: 2026-09-18
+Estado verificado: 2026-09-19
 
 ## Artefacto actual
 
@@ -40,7 +40,9 @@ La única conclusión respaldada es `unresolved`. No se puede afirmar si la tabl
 - Descubrimiento y reescaneo de la base completa.
 - Inspector de tablas y campos con IDs, tipos, choices y referencias.
 - Lista y grafo SVG de relaciones directas, incluyendo un estado vacío cuando no hay vecinos.
-- Filtros por procedencia, dirección y alcance histórico Shop (TrucksDB / `E`); el alcance Shop no se cancela al seleccionar una tabla del área.
+- Filtros por procedencia, dirección, alcance histórico Shop (TrucksDB / `E`) y alcance **Reporting kit** (`E`, `WD`, `Z`, `S`, `DE` según `config/declared-catalog.json`).
+- Las join rules del data-reporting-kit se muestran como notas externas; no se convierten en aristas Ninox.
+- El overlay declarado distingue `ninox_field`, IDs documentados en prosa (`WD.IA`) y omisiones de extracto (`S.E3`, `S.J3`, `S.K3`). `LTL_Shop` permanece `unavailable`.
 - El scan CLI y el Rescan regeneran `output/analysis/shop-map.json` junto con schema, relaciones y calidad.
 - Artefactos de scan ausentes o ilegibles se muestran como alerta; la página no falla.
 - Reporte de calidad con tablas aisladas e hipótesis.

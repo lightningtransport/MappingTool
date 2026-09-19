@@ -16,6 +16,9 @@ describe("loadExplorerData", () => {
     expect(data.loadIssue).toContain("output/schema.json is missing");
     expect(data.loadIssue).toContain("output/relationships.json is missing");
     expect(data.catalog.issue).toBeNull();
+    expect(data.declared?.schemaVersion).toBe("3.2.0");
+    expect(data.declared?.tableIds).toEqual(["E", "WD", "Z", "S", "DE"]);
+    expect(data.declared?.issue).toBeNull();
   });
 
   it("synthesizes shop map and quality when only schema and relationships exist", async () => {

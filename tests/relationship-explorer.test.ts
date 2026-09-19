@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import RelationshipExplorer from "../app/relationship-explorer.js";
 import type { ExplorerData } from "../app/explorer-data.js";
 import { emptyCatalog } from "../src/catalog/store.js";
+import { emptyDeclaredCatalog, reconcileDeclaredCatalog } from "../src/catalog/declaredCatalog.js";
 
 const relationship = {
   sourceTable: "TrucksDB",
@@ -60,6 +61,7 @@ const data: ExplorerData = {
     orphans: [],
     issue: null,
   },
+  declared: emptyDeclaredCatalog(),
 };
 
 describe("relationship explorer SSR", () => {
@@ -71,6 +73,27 @@ describe("relationship explorer SSR", () => {
     expect(html).toContain("Human reviewed");
     expect(html).toContain("Usage &amp; Review");
     expect(html).toContain("READ ONLY TO NINOX");
+    expect(html).toContain("Reporting kit");
+  });
+
+  it("renders declared reporting mappings as external notes, not Ninox edges", () => {
+    const declared = reconcileDeclaredCatalog({
+      source: { label: "Lightning Transportation Data Reporting Kit", schemaVersion: "3.2.0" },
+      repositories: [{ id: "ltl-shop", url: "https://github.com/lightningtransport/LTL_Shop", role: "Shop app", status: "unavailable", reason: "GitHub 404" }],
+      tables: [{ report: "trucks", ninoxName: "TrucksDB", tableId: "A", grain: "One truck", fields: [] }],
+      joinRules: ["Use a LEFT JOIN from history to current trucks."],
+      notes: ["DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field."],
+    });
+    const html = renderToString(createElement(RelationshipExplorer, { data: { ...data, declared } }));
+    expect(html).toContain("Declared reporting catalog");
+    expect(html).toContain("schema 3.2.0");
+    expect(html).toContain("Use a LEFT JOIN from history to current trucks.");
+    expect(html).toContain("GitHub 404");
+    expect(html).toContain("These are not Ninox ref/rev edges.");
+    expect(html).toContain("Reporting-kit mappings for this table");
+    expect(html).toContain("One truck");
+    expect(html).toContain("Business-key join rules stay documented");
+    expect(html).toContain("DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field.");
   });
 
   it("renders a stable overview editor for the selected table", () => {
