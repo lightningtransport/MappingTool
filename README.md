@@ -89,7 +89,7 @@ Los candidatos no se convierten en conocimiento revisado hasta que una persona l
 
 | Comando | Función |
 | --- | --- |
-| `npm run scan` | Ejecuta el escaneo completo y actualiza los artefactos locales. |
+| `npm run scan` | Ejecuta el escaneo completo y actualiza schema, relaciones, calidad, historial y el mapa Shop. |
 | `npm run discover:tables` | Descubre el catálogo de tablas. |
 | `npm run inspect:metadata` | Inspecciona metadata estructural. |
 | `npm run discover:relationships` | Regenera las relaciones declaradas y detectadas. |

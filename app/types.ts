@@ -15,5 +15,5 @@ export interface ShopMapData {
     confidence: number;
   }[];
   hypotheses: unknown[];
-  allTables: { tableId: string; tableName: string; relationshipCount: number }[];
+  allTables?: { tableId: string; tableName: string; relationshipCount: number }[];
 }

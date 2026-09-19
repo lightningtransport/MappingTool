@@ -5,6 +5,7 @@ import type { NinoxRecord, NinoxTableSchema } from "../ninox/types.js";
 import { buildDataQualityReport, writeDataQualityReport } from "./dataQuality.js";
 import { analyzeRelationships, detectRelationshipsFromSamples, type RelationshipResult } from "./relationshipAnalyzer.js";
 import { archiveStructuralSnapshot, buildStructuralSnapshot, diffStructuralSnapshots, readCurrentStructuralSnapshot, writeStructuralHistory, type StructuralDiff } from "./scanHistory.js";
+import { writeShopMap } from "./shopMap.js";
 
 export interface DatabaseScanResult {
   scannedAt: string;
@@ -108,5 +109,6 @@ export async function writeDatabaseScan(result: DatabaseScanResult, outputRoot =
     return writeFile(resolve(samplesDir, `${safeName}-${sample.tableId}.json`), `${JSON.stringify({ tableId: sample.tableId, tableName: sample.tableName, records: sample.records }, null, 2)}\n`, "utf8");
   }));
   await writeStructuralHistory(currentSnapshot, structuralDiff, outputRoot);
+  await writeShopMap(outputRoot);
   return structuralDiff;
 }

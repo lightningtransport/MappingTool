@@ -31,3 +31,9 @@ export function relationshipGraph(selectedTableId: string, selectedTableName: st
   });
   return { center, neighbors, edges: direct };
 }
+
+export function graphNeighborForEdge(graph: GraphModel, edge: ExplorerRelationship, selectedTableId: string) {
+  const targetId = edge.sourceTableId === selectedTableId ? edge.targetTableId : edge.sourceTableId;
+  if (targetId === selectedTableId) return null;
+  return graph.neighbors.find((node) => node.id === targetId) ?? null;
+}

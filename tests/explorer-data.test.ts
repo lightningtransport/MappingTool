@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterRelationships, normalizeExplorerFields, relationshipCounts, scopedRelationships, type ExplorerRelationship } from "../app/explorer-data.js";
+import { filterRelationships, normalizeExplorerFields, preserveShopScope, relationshipCounts, scopedRelationships, tableIdForShopScope, type ExplorerRelationship } from "../app/explorer-data.js";
 
 const edges = [
   { sourceTableId: "A", targetTableId: "B", source: "ninox" },
@@ -29,6 +29,15 @@ describe("explorer relationship logic", () => {
     const unrelatedEdgeTouchingAnchor = { sourceTableId: "E", targetTableId: "C", source: "unknown" } as ExplorerRelationship;
     expect(scopedRelationships("shop", [shopEdge, unrelatedEdgeTouchingAnchor], [shopEdge])).toEqual([shopEdge]);
     expect(scopedRelationships("all", [shopEdge, unrelatedEdgeTouchingAnchor], [shopEdge])).toEqual([shopEdge, unrelatedEdgeTouchingAnchor]);
+  });
+
+  it("keeps Shop scope when navigating to a Shop table and expands otherwise", () => {
+    const shopIds = new Set(["E", "PD"]);
+    expect(preserveShopScope("shop", "PD", shopIds)).toBe("shop");
+    expect(preserveShopScope("shop", "Z", shopIds)).toBe("all");
+    expect(preserveShopScope("all", "E", shopIds)).toBe("all");
+    expect(tableIdForShopScope("Z", shopIds, "E")).toBe("E");
+    expect(tableIdForShopScope("PD", shopIds, "E")).toBe("PD");
   });
 
   it("normalizes schema fields without passing raw metadata to the client", () => {

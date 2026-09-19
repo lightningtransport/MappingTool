@@ -60,6 +60,7 @@ export interface ExplorerData {
     orphans: CatalogOrphan[];
     issue: string | null;
   };
+  loadIssue?: string | null;
 }
 
 export interface CatalogSearchResult {
@@ -197,4 +198,12 @@ export function scopedRelationships<T extends RelationshipIdentity>(scope: "shop
   if (scope === "all") return relationships;
   const shopKeys = new Set(shopEdges.map(relationshipKey));
   return relationships.filter((relationship) => shopKeys.has(relationshipKey(relationship)));
+}
+
+export function preserveShopScope(scope: "shop" | "all", tableId: string, shopIds: Set<string>): "shop" | "all" {
+  return scope === "shop" && shopIds.has(tableId) ? "shop" : "all";
+}
+
+export function tableIdForShopScope(selectedTable: string, shopIds: Set<string>, anchorId: string): string {
+  return shopIds.has(selectedTable) ? selectedTable : anchorId;
 }

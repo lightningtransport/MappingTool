@@ -114,6 +114,24 @@ describe("relationship explorer SSR", () => {
     const html = renderToString(createElement(RelationshipExplorer, { data: unresolvedData }));
     expect(html).toContain("Unresolved <b>1</b>");
     expect(html).toContain("Structural evidence and scan history");
+    expect(html).toContain("MAP QUALITY");
+    expect(html).toContain("UNRESOLVED REFERENCES");
+    expect(html).toContain("Broken Ninox reference");
+  });
+
+  it("renders empty and load-failure states without inventing tables", () => {
+    const html = renderToString(createElement(RelationshipExplorer, { data: {
+      ...data,
+      tables: [],
+      relationships: [],
+      summary: { tableCount: 0, relationshipCount: 0, fieldCount: 0, sampledRecords: 0 },
+      quality: { ...data.quality, tables: { total: 0, connected: 0, isolated: 0, hypothesisOnly: 0 }, unresolvedReferences: [] },
+      loadIssue: "Local scan artifacts need attention: output/schema.json is missing. Run npm run scan or Rescan after configuring .env.local.",
+    } }));
+    expect(html).toContain("Scan artifacts need attention.");
+    expect(html).toContain("output/schema.json is missing");
+    expect(html).toContain("No tables loaded.");
+    expect(html).not.toContain("TrucksDB</b>");
   });
 
   it("renders the latest structural change summary", () => {

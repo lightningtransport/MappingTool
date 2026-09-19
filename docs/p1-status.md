@@ -39,8 +39,10 @@ La única conclusión respaldada es `unresolved`. No se puede afirmar si la tabl
 
 - Descubrimiento y reescaneo de la base completa.
 - Inspector de tablas y campos con IDs, tipos, choices y referencias.
-- Lista y grafo SVG de relaciones directas.
-- Filtros por procedencia, dirección y alcance histórico Shop.
+- Lista y grafo SVG de relaciones directas, incluyendo un estado vacío cuando no hay vecinos.
+- Filtros por procedencia, dirección y alcance histórico Shop (TrucksDB / `E`); el alcance Shop no se cancela al seleccionar una tabla del área.
+- El scan CLI y el Rescan regeneran `output/analysis/shop-map.json` junto con schema, relaciones y calidad.
+- Artefactos de scan ausentes o ilegibles se muestran como alerta; la página no falla.
 - Reporte de calidad con tablas aisladas e hipótesis.
 - Historial estructural local y resumen del último cambio.
 - Diagnóstico seguro de referencias no resueltas.

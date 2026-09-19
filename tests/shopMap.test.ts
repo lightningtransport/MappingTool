@@ -15,5 +15,18 @@ describe("shopMap", () => {
     const result = await buildShopMap(root);
     expect(result.nodes.map((node) => node.tableId)).toEqual(["E", "PD", "XB"]);
     expect(result.hypotheses).toHaveLength(1);
+    expect(result.anchor).toEqual({ tableId: "E", tableName: "TrucksDB" });
+  });
+
+  it("uses the scanned TrucksDB name when schema is present", async () => {
+    const root = await mkdtemp(join(tmpdir(), "ninox-shop-map-schema-"));
+    await mkdir(root, { recursive: true });
+    await writeFile(join(root, "schema.json"), JSON.stringify({ tables: [{ id: "E", name: "TrucksDB" }] }), "utf8");
+    await writeFile(join(root, "relationships.json"), JSON.stringify({ relationships: [
+      { sourceTable: "TrucksDB", sourceTableId: "E", sourceField: "Owner", sourceFieldId: "VF", targetTable: "Owners", targetTableId: "LE", targetField: "id", reverseField: "Unknown", source: "ninox", confidence: 1 },
+    ] }), "utf8");
+    const result = await buildShopMap(root);
+    expect(result.anchor).toEqual({ tableId: "E", tableName: "TrucksDB" });
+    expect(result.nodes.map((node) => node.tableId)).toEqual(["E", "LE"]);
   });
 });
