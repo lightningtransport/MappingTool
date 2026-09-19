@@ -83,7 +83,7 @@ describe("relationship explorer SSR", () => {
       tables: [{ report: "trucks", ninoxName: "TrucksDB", tableId: "A", grain: "One truck", fields: [] }],
       joinRules: ["Use a LEFT JOIN from history to current trucks."],
       notes: ["DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field."],
-    });
+    }, [{ id: "A", name: "Fleet trucks", fields: [] }]);
     const html = renderToString(createElement(RelationshipExplorer, { data: { ...data, declared } }));
     expect(html).toContain("Declared reporting catalog");
     expect(html).toContain("Declared reporting catalog · schema");
@@ -95,6 +95,7 @@ describe("relationship explorer SSR", () => {
     expect(html).toContain("One truck");
     expect(html).toContain("Business-key join rules stay documented");
     expect(html).toContain("DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field.");
+    expect(html).toContain("scan name Fleet trucks");
   });
 
   it("renders a stable overview editor for the selected table", () => {

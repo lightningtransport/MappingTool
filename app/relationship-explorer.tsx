@@ -166,7 +166,7 @@ export default function RelationshipExplorer({ data }: { data: ExplorerData }) {
         <span>Unknown table ID <b>{data.declared.unknownTableCount}</b></span>
       </div>
       <ul className="declared-repos">{data.declared.repositories.map((repo) => <li key={repo.id}><code>{repo.status}</code> {repo.url} — {repo.role}{repo.reason ? ` (${repo.reason})` : ""}</li>)}</ul>
-      <ul className="declared-tables">{data.declared.tables.map((table) => <li key={table.report}><button type="button" onClick={() => table.tableId && navigate(table.tableId, "overview")}><b>{table.ninoxName}</b> <small>{table.tableId ?? "Unknown"} · {table.report} · {table.presence}</small></button></li>)}</ul>
+      <ul className="declared-tables">{data.declared.tables.map((table) => <li key={table.report}><button type="button" onClick={() => table.tableId && navigate(table.tableId, "overview")}><b>{table.ninoxName}</b> <small>{table.tableId ?? "Unknown"} · {table.report} · {table.presence}{table.scannedName && table.scannedName !== table.ninoxName ? ` · scan name ${table.scannedName}` : ""}</small></button></li>)}</ul>
       {data.declared.joinRules.length > 0 && <div className="declared-joins"><h3>Documented reporting joins</h3><ul>{data.declared.joinRules.map((rule) => <li key={rule}>{rule}</li>)}</ul></div>}
       {data.declared.notes.length > 0 && <div className="declared-joins"><h3>Catalog notes</h3><ul>{data.declared.notes.map((note) => <li key={note}>{note}</li>)}</ul></div>}
     </details>}
