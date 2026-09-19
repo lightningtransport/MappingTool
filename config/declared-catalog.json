@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "id": "data-reporting-kit",
+    "label": "Lightning Transportation Data Reporting Kit",
+    "url": "https://github.com/lightningtransport/data-reporting-kit",
+    "schemaVersion": "3.2.0",
+    "kitPackageVersion": "3.8.23",
+    "schemaVerifiedAt": "2026-09-14T18:32:46Z",
+    "metadataPath": "supabase/functions/agent-reporting/metadata.ts"
+  },
+  "repositories": [
+    {
+      "id": "mapping-tool",
+      "url": "https://github.com/lightningtransport/MappingTool",
+      "role": "Ninox technical catalog and Relationship Explorer",
+      "status": "this-repo"
+    },
+    {
+      "id": "data-reporting-kit",
+      "url": "https://github.com/lightningtransport/data-reporting-kit",
+      "role": "Supabase reporting contract and explicit Ninox ID mappings",
+      "status": "verified-remote"
+    },
+    {
+      "id": "ltl-shop",
+      "url": "https://github.com/lightningtransport/LTL_Shop",
+      "role": "Mechanic work-order / yard app (NestJS + Next.js + Prisma/Supabase)",
+      "status": "repo-verified",
+      "reason": "Prisma was read at apps/api/prisma/schema.prisma on main @ 0f560c1; runtime supabase; zero Ninox table IDs."
+    }
+  ],
+  "tables": [
+    {
+      "report": "trucks",
+      "ninoxName": "TrucksDB",
+      "tableId": "E",
+      "grain": "One current truck-master row per unique truck number.",
+      "fields": [
+        { "reportField": "truck_number", "tableId": "E", "fieldId": "A" },
+        { "reportField": "dispatcher", "tableId": "E", "fieldId": "YF" },
+        { "reportField": "insurance", "tableId": "E", "fieldId": "Y4" },
+        { "reportField": "vin", "tableId": "E", "fieldId": "CG", "sensitive": true },
+        { "reportField": "make", "tableId": "E", "fieldId": "DG" },
+        { "reportField": "odometer_miles", "tableId": "E", "fieldId": "OF" },
+        { "reportField": "owner", "tableId": "E", "fieldId": "VF" },
+        { "reportField": "last_known_address", "tableId": "E", "fieldId": "PF", "sensitive": true },
+        { "reportField": "model_year", "tableId": "E", "fieldId": "IJ" },
+        { "reportField": "license_plate", "tableId": "E", "fieldId": "HJ", "sensitive": true },
+        { "reportField": "yard_location", "tableId": "E", "fieldId": "X1" },
+        { "reportField": "samsara_last_connected_at", "tableId": "E", "fieldId": "SF" },
+        { "reportField": "samsara_vehicle_id", "tableId": "E", "fieldId": "BM", "sensitive": true },
+        { "reportField": "mechanic_status", "tableId": "E", "fieldId": "TA" }
+      ]
+    },
+    {
+      "report": "driver_pay",
+      "ninoxName": "DriverPay",
+      "tableId": "WD",
+      "grain": "One historical driver assignment/pay record.",
+      "fields": [
+        { "reportField": "Truck_Number", "tableId": "WD", "fieldId": "IA", "binding": "documented" },
+        { "reportField": "Out Date", "tableId": "WD", "fieldId": "O" },
+        { "reportField": "Return Date", "tableId": "WD", "fieldId": "R" },
+        { "reportField": "Transfer", "tableId": "WD", "fieldId": "I9" },
+        { "reportField": "Termination", "tableId": "WD", "fieldId": "LA" },
+        { "reportField": "Solo_Driver_if_1", "tableId": "WD", "fieldId": "PC" },
+        { "reportField": "MoneyPerWeekSigned", "tableId": "WD", "fieldId": "H6" },
+        { "reportField": "MoneyPerDaysigned", "tableId": "WD", "fieldId": "G6" },
+        { "reportField": "CPM", "tableId": "WD", "fieldId": "DA" },
+        { "reportField": "Pay CPM after Miles", "tableId": "WD", "fieldId": "EA" },
+        { "reportField": "owner", "tableId": "WD", "fieldId": "KB" },
+        { "reportField": "Samsara_ID", "tableId": "WD", "fieldId": "FB", "sensitive": true },
+        { "reportField": "Dispatch_Name_", "tableId": "WD", "fieldId": "ZA" },
+        { "reportField": "Temporal_Driver", "tableId": "WD", "fieldId": "UJ" }
+      ]
+    },
+    {
+      "report": "drivers",
+      "ninoxName": "DriversDB",
+      "tableId": "Z",
+      "grain": "One current driver-master profile. Field-level Z mappings are Unknown in the kit.",
+      "fields": []
+    },
+    {
+      "report": "returns",
+      "ninoxName": "Returns",
+      "tableId": "S",
+      "grain": "One current expected-return row.",
+      "fields": [
+        { "reportField": "Truck", "tableId": "S", "fieldId": "A" },
+        { "reportField": "Driver Name", "tableId": "S", "fieldId": "B" },
+        { "reportField": "Phone Number", "tableId": "S", "fieldId": "E", "sensitive": true },
+        { "reportField": "Return Date", "tableId": "S", "fieldId": "H" },
+        { "reportField": "Solo", "tableId": "S", "fieldId": "E3", "binding": "source-omission" },
+        { "reportField": "DriverDB_Id_saved", "tableId": "S", "fieldId": "J3", "binding": "source-omission" },
+        { "reportField": "Driver_id_Pay_", "tableId": "S", "fieldId": "K3", "binding": "source-omission" }
+      ]
+    },
+    {
+      "report": "settlements",
+      "ninoxName": "Facturacion",
+      "tableId": "DE",
+      "grain": "One truck identifier or owner bucket per Tuesday–Monday settlement period.",
+      "fields": [
+        { "reportField": "Truck", "tableId": "DE", "fieldId": "K" },
+        { "reportField": "Dispatch", "tableId": "DE", "fieldId": "X3" },
+        { "reportField": "Gross", "tableId": "DE", "fieldId": "L4" },
+        { "reportField": "Total Expenses", "tableId": "DE", "fieldId": "Z4" },
+        { "reportField": "Net", "tableId": "DE", "fieldId": "A5" },
+        { "reportField": "From", "tableId": "DE", "fieldId": "L" },
+        { "reportField": "truck_loans", "tableId": "DE", "fieldId": "Q3" },
+        { "reportField": "Total Driver Pay", "tableId": "DE", "fieldId": "L3" },
+        { "reportField": "%AppliedSaved", "tableId": "DE", "fieldId": "T2" },
+        { "reportField": "Gross_with_%_deduction_All", "tableId": "DE", "fieldId": "G8" },
+        { "reportField": "Driven_miles", "tableId": "DE", "fieldId": "S5" }
+      ]
+    },
+    {
+      "report": "fuel",
+      "ninoxName": "Unknown",
+      "tableId": null,
+      "grain": "One historic fuel transaction. The kit does not declare an explicit Ninox table ID.",
+      "fields": []
+    }
+  ],
+  "joinRules": [
+    "DriverPay.DriversDB_ID is text while drivers.Ninox_ID is numeric. In SQL use DriverPay.DriversDB_ID = drivers.Ninox_ID::text.",
+    "Historical truck keys in DriverPay, returns, and settlements are text while trucks.truck_number is numeric. Normalize before comparing.",
+    "Use a LEFT JOIN from historical tables to the current trucks master. An inner join silently drops valid history.",
+    "returns.Ninox_ID identifies the Returns source record and is not a driver ID. Do not join it to drivers.Ninox_ID.",
+    "CDL is the unique driver key across drivers and DriverPay. Truck number is the vehicle key across documented field variants.",
+    "returns.CDL is a sensitive exact driver key; use it only when it matches a verified CDL in related approved data. Do not substitute a name, Supabase ID, or returns.Ninox_ID.",
+    "fuel.Unit is a numeric historic truck identifier. Normalize and LEFT JOIN to trucks.truck_number. The kit does not declare a Ninox table ID for fuel.",
+    "LTL_Shop identifies vehicles by truckNumber. That is a business-key match to kit trucks.truck_number / Ninox E.A, not a Ninox ref/rev edge."
+  ],
+  "notes": [
+    "These mappings are external reporting-kit evidence, not Ninox ref/rev metadata.",
+    "metadata.ts SCHEMA_VERSION remains 3.2.0 (verified 2026-09-14). Kit changelog HEAD is 3.8.23 (2026-09-17) and does not add new explicit Ninox table IDs.",
+    "DriverPay.Truck_Number is documented as Ninox WD.IA in kit meaning and data-dictionary, but metadata.ts does not set ninox_field, so catalog:import still ignores it.",
+    "settlements.tonu is only a related Ninox concept (DE.M1 / Facturado Compass), not an explicit ninox_field mapping.",
+    "mechanic_status (E.TA) is the kit's current shop-status field on TrucksDB. LTL_Shop yard status is a Work Plan / YardBoardPhase, not that Ninox field.",
+    "Schedule_Teams is a live Ninox share used by reporting, not a mapped table ID in metadata.ts.",
+    "Settlement Trucks 1/2/3 are owner-expense allocation labels in Facturacion, not separate Ninox tables.",
+    "LTL_Shop was repo-verified at apps/api/prisma/schema.prisma on main @ 0f560c1cafd12463cf95e24904af4f5da821e68d: runtime supabase, zero Ninox table IDs. Shop Prisma models and yard phases are not drawn as Ninox edges."
+  ],
+  "shopApp": {
+    "label": "Lightning Shop",
+    "defaultBranch": "main",
+    "verifiedCommit": "0f560c1cafd12463cf95e24904af4f5da821e68d",
+    "verifiedAt": "2026-09-19T23:30:00Z",
+    "runtimeDataSource": "supabase",
+    "vehicleKey": "truckNumber",
+    "ninoxTableIds": [],
+    "yardPhases": ["inspection", "shop_work", "alignment", "detailing", "quality_check", "ready_to_go"],
+    "workOrderStatuses": ["created", "in_progress", "waiting_paused", "completed", "cancelled"]
+  }
+}

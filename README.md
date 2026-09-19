@@ -85,11 +85,13 @@ npm run catalog:import -- --path /absolute/path/to/data-reporting-kit
 
 Los candidatos no se convierten en conocimiento revisado hasta que una persona los acepte en **Usage & Review**. Repetir el comando conserva decisiones si el archivo fuente no cambió.
 
+El explorador también carga `config/declared-catalog.json`, un recorte verificado del kit (`TrucksDB (E)`, `DriverPay (WD)`, `DriversDB (Z)`, `Returns (S)`, `Facturacion (DE)`). El contrato de metadata del kit sigue en `SCHEMA_VERSION` 3.2.0; el changelog remoto iba en 3.8.23 al verificar. Esas tablas aparecen en el alcance **Reporting kit**. Las reglas de join del kit se muestran como notas externas y no se dibujan como relaciones `ref`/`rev` de Ninox. `fuel` permanece con ID de tabla `Unknown` porque el kit no declara uno. `LTL_Shop` está **repo-verified** en `main` @ `0f560c1cafd12463cf95e24904af4f5da821e68d` (`apps/api/prisma/schema.prisma`): runtime `supabase`, clave `truckNumber`, cero IDs de tabla Ninox; no se dibujan modelos Prisma ni fases de yard como aristas Ninox.
+
 ### Comandos principales
 
 | Comando | Función |
 | --- | --- |
-| `npm run scan` | Ejecuta el escaneo completo y actualiza los artefactos locales. |
+| `npm run scan` | Ejecuta el escaneo completo y actualiza schema, relaciones, calidad, historial y el mapa Shop. |
 | `npm run discover:tables` | Descubre el catálogo de tablas. |
 | `npm run inspect:metadata` | Inspecciona metadata estructural. |
 | `npm run discover:relationships` | Regenera las relaciones declaradas y detectadas. |

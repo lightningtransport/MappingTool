@@ -19,6 +19,7 @@
 .workspace { grid-template-columns:260px minmax(0,1fr); }
 .sidebar,.content { min-width:0; }
 .scope-control { display:grid; grid-template-columns:1fr 1fr; gap:3px; margin-top:10px; padding:3px; border:1px solid var(--line); border-radius:7px; background:#f3f7f4; }
+.scope-control.three { grid-template-columns:1fr 1fr 1fr; }
 .scope-control button { border:0; border-radius:5px; background:transparent; color:var(--muted); padding:8px 5px; font-size:11px; }
 .scope-control button.selected { background:var(--white); color:var(--ink); box-shadow:0 1px 3px #17312b1a; }
 .table-list { scrollbar-color:#9ab7a8 #eef4f0; scrollbar-width:auto; }
@@ -68,6 +69,12 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:3px soli
 .evidence-summary { display:flex; flex-wrap:wrap; gap:9px; margin-top:14px; }
 .evidence-summary span { padding:8px 10px; border-radius:6px; background:#f2f6f3; font:10px 'DM Mono',monospace; }
 .evidence-drawer p { margin:9px 0 0; }
+.declared-repos,.declared-tables,.declared-joins ul,.declared-fields { margin:10px 0 0; padding-left:18px; }
+.declared-tables button,.declared-fields button { border:0; background:transparent; color:var(--ink); text-align:left; padding:2px 0; }
+.declared-tables small,.declared-fields small { display:block; color:var(--muted); font:10px 'DM Mono',monospace; }
+.declared-joins { margin-top:12px; }
+.declared-joins h3,.declared-joins h4 { margin:0 0 6px; font-size:13px; }
+.selected-table-joins { margin:0 0 16px; padding:12px 14px; border:1px dashed #d7c4a0; border-radius:8px; background:#fffaf0; color:#6b5428; font-size:12px; }
 .search-label { display:block; padding:0 2px; color:var(--muted); font:10px 'DM Mono',monospace; text-transform:uppercase; }
 .search-label input { margin-top:7px; text-transform:none; }
 .search-results { display:grid; gap:4px; margin-top:10px; max-height:610px; overflow:auto; }

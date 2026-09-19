@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filterRelationships, normalizeExplorerFields, relationshipCounts, scopedRelationships, type ExplorerRelationship } from "../app/explorer-data.js";
+import { filterRelationships, normalizeExplorerFields, preserveExplorerScope, preserveShopScope, relationshipCounts, scopedRelationships, tableIdForShopScope, type ExplorerRelationship } from "../app/explorer-data.js";
 
 const edges = [
   { sourceTableId: "A", targetTableId: "B", source: "ninox" },
@@ -24,11 +24,31 @@ describe("explorer relationship logic", () => {
     expect(filterRelationships(edges, "ninox", "incoming", "A")).toHaveLength(0);
   });
 
+  it("keeps reporting-kit scope on tables that touch declared IDs, not as invented edges", () => {
+    const reporting = scopedRelationships("reporting", edges, [edges[0]!], ["A"]);
+    expect(reporting).toEqual([edges[0], edges[2]]);
+  });
+
   it("uses only the exact Shop map edge set in Shop scope", () => {
     const shopEdge = edges[0]!;
     const unrelatedEdgeTouchingAnchor = { sourceTableId: "E", targetTableId: "C", source: "unknown" } as ExplorerRelationship;
     expect(scopedRelationships("shop", [shopEdge, unrelatedEdgeTouchingAnchor], [shopEdge])).toEqual([shopEdge]);
     expect(scopedRelationships("all", [shopEdge, unrelatedEdgeTouchingAnchor], [shopEdge])).toEqual([shopEdge, unrelatedEdgeTouchingAnchor]);
+  });
+
+  it("keeps Shop scope when navigating to a Shop table and expands otherwise", () => {
+    const shopIds = new Set(["E", "PD"]);
+    expect(preserveShopScope("shop", "PD", shopIds)).toBe("shop");
+    expect(preserveShopScope("shop", "Z", shopIds)).toBe("all");
+    expect(preserveShopScope("all", "E", shopIds)).toBe("all");
+    expect(tableIdForShopScope("Z", shopIds, "E")).toBe("E");
+    expect(tableIdForShopScope("PD", shopIds, "E")).toBe("PD");
+  });
+
+  it("keeps reporting-kit scope when navigating to a declared table", () => {
+    const reportingIds = new Set(["E", "WD", "S"]);
+    expect(preserveExplorerScope("reporting", "WD", reportingIds)).toBe("reporting");
+    expect(preserveExplorerScope("reporting", "Z", reportingIds)).toBe("all");
   });
 
   it("normalizes schema fields without passing raw metadata to the client", () => {

@@ -29,6 +29,9 @@ describe("scanDatabase", () => {
       const quality = JSON.parse(await readFile(join(outputRoot, "analysis", "data-quality.json"), "utf8")) as { tables: { connected: number }; relationships: { confirmed: number } };
       expect(quality.tables.connected).toBe(2);
       expect(quality.relationships.confirmed).toBe(1);
+      const shopMap = JSON.parse(await readFile(join(outputRoot, "analysis", "shop-map.json"), "utf8")) as { anchor: { tableId: string }; nodes: { tableId: string }[] };
+      expect(shopMap.anchor.tableId).toBe("E");
+      expect(shopMap.nodes.map((node) => node.tableId)).toEqual(["E", "ZD"]);
     } finally {
       await rm(outputRoot, { recursive: true, force: true });
     }

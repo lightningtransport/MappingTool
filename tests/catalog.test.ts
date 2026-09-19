@@ -112,6 +112,14 @@ describe("catalog reconciliation, search, and export", () => {
     expect(searchCatalog(data, "normalized")[0]?.kind).toBe("field");
     expect(searchCatalog(data, "operations dashboard")[0]?.kind).toBe("consumer");
     expect(searchCatalog(data, "E").length).toBeGreaterThan(0);
+    const declaredData = {
+      ...data,
+      declared: {
+        sourceLabel: "Lightning Transportation Data Reporting Kit",
+        tables: [{ report: "trucks", ninoxName: "TrucksDB", tableId: "E", grain: "One truck", presence: "in-schema", scannedName: "TrucksDB", fields: [{ reportField: "mechanic_status", tableId: "E", fieldId: "TA", sensitive: false, presence: "absent", binding: "ninox_field" }] }],
+      },
+    } as unknown as ExplorerData;
+    expect(searchCatalog(declaredData, "mechanic_status")[0]?.kind).toBe("declared");
   });
 
   it("exports reviewed knowledge without candidates or record samples", async () => {

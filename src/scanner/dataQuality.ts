@@ -48,6 +48,20 @@ function text(value: unknown): string {
   return typeof value === "string" && value.trim() ? value : "Unknown";
 }
 
+export function emptyDataQualityReport(scannedAt = "Unknown"): DataQualityReport {
+  return {
+    generatedAt: scannedAt,
+    scanScannedAt: scannedAt,
+    tables: { total: 0, connected: 0, isolated: 0, hypothesisOnly: 0 },
+    relationships: { confirmed: 0, detected: 0, unknown: 0 },
+    isolatedTables: [],
+    hypothesisOnlyTables: [],
+    inferredRelationships: [],
+    unresolvedReferences: [],
+    scanErrors: [],
+  };
+}
+
 export function buildDataQualityReport(evidence: DataQualityEvidence): DataQualityReport {
   const tables = evidence.tables.map((table) => ({ tableId: text(table.id), tableName: text(table.name) }));
   const tableIds = new Set(tables.map((table) => table.tableId));

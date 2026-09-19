@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { graphNodeLabel, relationshipGraph } from "../app/relationship-graph-model.js";
+import { graphNeighborForEdge, graphNodeLabel, relationshipGraph } from "../app/relationship-graph-model.js";
 import type { ExplorerRelationship } from "../app/explorer-data.js";
 
 const edge = (sourceTableId: string, sourceTable: string, targetTableId: string, targetTable: string, source = "ninox") => ({ sourceTableId, sourceTable, sourceFieldId: "f", targetTableId, targetTable, sourceField: "field", targetField: "target", reverseField: "reverse", source, provenance: source, confidence: 1, raw: {} } as ExplorerRelationship);
@@ -14,6 +14,12 @@ describe("relationship graph model", () => {
     expect(new Set(radii).size).toBe(2);
     expect(new Set(graph.neighbors.map((node) => `${node.x.toFixed(3)}:${node.y.toFixed(3)}`)).size).toBe(24);
   });
+  it("does not invent a neighbor for a self-loop", () => {
+    const graph = relationshipGraph("A", "A", [edge("A", "A", "A", "A")]);
+    expect(graph.neighbors).toEqual([]);
+    expect(graphNeighborForEdge(graph, graph.edges[0]!, "A")).toBeNull();
+  });
+
   it("shortens only the visual label", () => {
     expect(graphNodeLabel("Body_Shop_Parts_Record")).toBe("Body_Shop_Parts…");
     expect(graphNodeLabel("TrucksDB")).toBe("TrucksDB");

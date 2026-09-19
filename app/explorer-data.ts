@@ -1,10 +1,12 @@
 import type { ShopMapData } from "./types.js";
 import type { DataQualityReport } from "../src/scanner/dataQuality.js";
 import type { StructuralChangeSummary, StructuralDiff } from "../src/scanner/scanHistory.js";
+import type { DeclaredCatalogView } from "../src/catalog/declaredCatalog.js";
 import type { CatalogAnnotations, CatalogCoverage, CatalogOrphan } from "../src/catalog/types.js";
 
 export type RelationshipSource = "ninox" | "detected" | "unknown";
 export type Direction = "all" | "incoming" | "outgoing";
+export type ExplorerScope = "all" | "shop" | "reporting";
 export type FieldMetadataState = "available" | "partial" | "unknown";
 
 export interface ExplorerChoice {
@@ -60,15 +62,17 @@ export interface ExplorerData {
     orphans: CatalogOrphan[];
     issue: string | null;
   };
+  loadIssue?: string | null;
+  declared?: DeclaredCatalogView;
 }
 
 export interface CatalogSearchResult {
-  kind: "table" | "field" | "consumer";
+  kind: "table" | "field" | "consumer" | "declared";
   tableId: string;
   fieldId: string | null;
   label: string;
   detail: string;
-  provenance: "Ninox evidence" | "Human reviewed";
+  provenance: "Ninox evidence" | "Human reviewed" | "External candidate";
 }
 
 export function searchCatalog(data: ExplorerData, query: string, limit = 60): CatalogSearchResult[] {
@@ -89,6 +93,16 @@ export function searchCatalog(data: ExplorerData, query: string, limit = 60): Ca
     const text = [consumer.name, consumer.id, consumer.kind, consumer.purpose, ...consumer.filters, ...consumer.joins, ...consumer.freshnessLimitations].join(" ").toLowerCase();
     if (!text.includes(normalized)) continue;
     for (const tableId of consumer.tableIds) results.push({ kind: "consumer", tableId, fieldId: null, label: consumer.name, detail: consumer.purpose || consumer.kind, provenance: "Human reviewed" });
+  }
+  for (const table of data.declared?.tables ?? []) {
+    const tableText = [table.report, table.ninoxName, table.tableId, table.grain].filter(Boolean).join(" ").toLowerCase();
+    if (tableText.includes(normalized)) {
+      results.push({ kind: "declared", tableId: table.tableId ?? "", fieldId: null, label: `${table.ninoxName} (${table.report})`, detail: table.tableId ? `Declared reporting table ${table.tableId}` : "Ninox table ID Unknown", provenance: "External candidate" });
+    }
+    for (const field of table.fields) {
+      const fieldText = [field.reportField, field.tableId, field.fieldId].join(" ").toLowerCase();
+      if (fieldText.includes(normalized)) results.push({ kind: "declared", tableId: field.tableId, fieldId: field.fieldId, label: `${table.ninoxName}.${field.reportField}`, detail: `${field.tableId}.${field.fieldId} · ${field.binding}`, provenance: "External candidate" });
+    }
   }
   return results.slice(0, limit);
 }
@@ -193,8 +207,24 @@ function relationshipKey(relationship: RelationshipIdentity) {
   return `${relationship.sourceTableId}\u0000${relationship.sourceFieldId}\u0000${relationship.targetTableId}`;
 }
 
-export function scopedRelationships<T extends RelationshipIdentity>(scope: "shop" | "all", relationships: T[], shopEdges: RelationshipIdentity[]) {
+export function scopedRelationships<T extends RelationshipIdentity>(scope: ExplorerScope, relationships: T[], shopEdges: RelationshipIdentity[], reportingIds: Iterable<string> = []) {
   if (scope === "all") return relationships;
-  const shopKeys = new Set(shopEdges.map(relationshipKey));
-  return relationships.filter((relationship) => shopKeys.has(relationshipKey(relationship)));
+  if (scope === "shop") {
+    const shopKeys = new Set(shopEdges.map(relationshipKey));
+    return relationships.filter((relationship) => shopKeys.has(relationshipKey(relationship)));
+  }
+  const ids = new Set(reportingIds);
+  return relationships.filter((relationship) => ids.has(relationship.sourceTableId) || ids.has(relationship.targetTableId));
+}
+
+export function preserveExplorerScope(scope: ExplorerScope, tableId: string, scopeIds: Set<string>): ExplorerScope {
+  return scope !== "all" && scopeIds.has(tableId) ? scope : "all";
+}
+
+export function preserveShopScope(scope: "shop" | "all", tableId: string, shopIds: Set<string>): "shop" | "all" {
+  return preserveExplorerScope(scope, tableId, shopIds) === "shop" ? "shop" : "all";
+}
+
+export function tableIdForShopScope(selectedTable: string, shopIds: Set<string>, anchorId: string): string {
+  return shopIds.has(selectedTable) ? selectedTable : anchorId;
 }

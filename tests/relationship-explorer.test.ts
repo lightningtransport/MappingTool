@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import RelationshipExplorer from "../app/relationship-explorer.js";
 import type { ExplorerData } from "../app/explorer-data.js";
 import { emptyCatalog } from "../src/catalog/store.js";
+import { emptyDeclaredCatalog, reconcileDeclaredCatalog } from "../src/catalog/declaredCatalog.js";
 
 const relationship = {
   sourceTable: "TrucksDB",
@@ -60,6 +61,7 @@ const data: ExplorerData = {
     orphans: [],
     issue: null,
   },
+  declared: emptyDeclaredCatalog(),
 };
 
 describe("relationship explorer SSR", () => {
@@ -71,6 +73,35 @@ describe("relationship explorer SSR", () => {
     expect(html).toContain("Human reviewed");
     expect(html).toContain("Usage &amp; Review");
     expect(html).toContain("READ ONLY TO NINOX");
+    expect(html).toContain("Reporting kit");
+  });
+
+  it("renders declared reporting mappings as external notes, not Ninox edges", () => {
+    const declared = reconcileDeclaredCatalog({
+      source: { label: "Lightning Transportation Data Reporting Kit", schemaVersion: "3.2.0" },
+      repositories: [{ id: "ltl-shop", url: "https://github.com/lightningtransport/LTL_Shop", role: "Shop app", status: "unavailable", reason: "GitHub 404" }],
+      tables: [{ report: "trucks", ninoxName: "TrucksDB", tableId: "A", grain: "One truck", fields: [] }],
+      joinRules: ["Use a LEFT JOIN from history to current trucks."],
+      notes: ["DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field."],
+      shopApp: { label: "Lightning Shop", defaultBranch: "main", verifiedCommit: "0f560c1cafd12463cf95e24904af4f5da821e68d", runtimeDataSource: "supabase", vehicleKey: "truckNumber", ninoxTableIds: [], yardPhases: ["shop_work"], workOrderStatuses: [] },
+    }, [{ id: "A", name: "Fleet trucks", fields: [] }]);
+    const html = renderToString(createElement(RelationshipExplorer, { data: { ...data, declared } }));
+    expect(html).toContain("Declared reporting catalog");
+    expect(html).toContain("Declared reporting catalog · schema");
+    expect(html).toContain("3.2.0");
+    expect(html).toContain("Use a LEFT JOIN from history to current trucks.");
+    expect(html).toContain("GitHub 404");
+    expect(html).toContain("These are not Ninox ref/rev edges.");
+    expect(html).toContain("Reporting-kit mappings for this table");
+    expect(html).toContain("One truck");
+    expect(html).toContain("Business-key join rules stay documented");
+    expect(html).toContain("DriverPay.Truck_Number is documented as Ninox WD.IA without ninox_field.");
+    expect(html).toContain("scan name Fleet trucks");
+    expect(html).toContain("Lightning Shop");
+    expect(html).toContain("Repo-verified");
+    expect(html).toContain("0f560c1cafd12463cf95e24904af4f5da821e68d");
+    expect(html).toContain("shop_work");
+    expect(html).toContain("none found");
   });
 
   it("renders a stable overview editor for the selected table", () => {
@@ -114,6 +145,24 @@ describe("relationship explorer SSR", () => {
     const html = renderToString(createElement(RelationshipExplorer, { data: unresolvedData }));
     expect(html).toContain("Unresolved <b>1</b>");
     expect(html).toContain("Structural evidence and scan history");
+    expect(html).toContain("MAP QUALITY");
+    expect(html).toContain("UNRESOLVED REFERENCES");
+    expect(html).toContain("Broken Ninox reference");
+  });
+
+  it("renders empty and load-failure states without inventing tables", () => {
+    const html = renderToString(createElement(RelationshipExplorer, { data: {
+      ...data,
+      tables: [],
+      relationships: [],
+      summary: { tableCount: 0, relationshipCount: 0, fieldCount: 0, sampledRecords: 0 },
+      quality: { ...data.quality, tables: { total: 0, connected: 0, isolated: 0, hypothesisOnly: 0 }, unresolvedReferences: [] },
+      loadIssue: "Local scan artifacts need attention: output/schema.json is missing. Run npm run scan or Rescan after configuring .env.local.",
+    } }));
+    expect(html).toContain("Scan artifacts need attention.");
+    expect(html).toContain("output/schema.json is missing");
+    expect(html).toContain("No tables loaded.");
+    expect(html).not.toContain("TrucksDB</b>");
   });
 
   it("renders the latest structural change summary", () => {
