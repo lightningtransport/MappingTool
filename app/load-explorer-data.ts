@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { readDeclaredCatalog } from "../src/catalog/declaredCatalog.js";
+import { readDeclaredCatalog } from "../src/catalog/readDeclaredCatalog.js";
 import { catalogCoverage, findCatalogOrphans } from "../src/catalog/model.js";
 import { readCatalog } from "../src/catalog/store.js";
 import { buildDataQualityReport, emptyDataQualityReport, type DataQualityReport } from "../src/scanner/dataQuality.js";

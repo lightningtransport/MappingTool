@@ -1,8 +1,4 @@
-import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
 import type { NinoxTableSchema } from "../ninox/types.js";
-
-export const DECLARED_CATALOG_PATH = resolve(process.cwd(), "config", "declared-catalog.json");
 
 export type DeclaredRepositoryStatus = "this-repo" | "verified-remote" | "unavailable";
 export type DeclaredPresence = "in-schema" | "absent" | "unknown-id";
@@ -158,19 +154,6 @@ export function reconcileDeclaredCatalog(raw: unknown, schema: NinoxTableSchema[
     unknownTableCount: tables.filter((table) => table.presence === "unknown-id").length,
     issue: null,
   };
-}
-
-export async function readDeclaredCatalog(
-  schema: NinoxTableSchema[] = [],
-  path = DECLARED_CATALOG_PATH,
-): Promise<DeclaredCatalogView> {
-  try {
-    return reconcileDeclaredCatalog(JSON.parse(await readFile(path, "utf8")), schema);
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code === "ENOENT") return emptyDeclaredCatalog("config/declared-catalog.json is missing");
-    return emptyDeclaredCatalog("Declared catalog config could not be read");
-  }
 }
 
 export function declaredAnchorTableId(declared: DeclaredCatalogView, fallback = "E"): string {
