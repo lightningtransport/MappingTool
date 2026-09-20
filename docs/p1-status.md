@@ -1,20 +1,19 @@
 # Estado de Ninox Data Mapper P1
 
-Estado verificado: 2026-09-19
+Estado verificado: 2026-09-20
 
 ## Artefacto actual
 
-Todos los contadores de esta sección provienen del scan `2026-08-14T15:45:53.241Z`:
+Todos los contadores de esta sección provienen del scan local verificado `2026-09-20T01:24:59.734Z`:
 
-- 163 tablas y 5,140 campos.
-- 2,163 registros muestreados localmente.
-- 112 referencias totales: 109 relaciones Ninox confirmadas, 0 hipótesis detectadas y 3 referencias no resueltas.
+- 163 tablas y 5,198 campos.
+- 109 relaciones Ninox confirmadas y 3 referencias no resueltas (destino `UC`).
 - 94 tablas conectadas y 69 aisladas.
-- 0 tablas conectadas únicamente por hipótesis.
+- Mapa Shop 25/25.
 - 0 errores de escaneo.
-- El último diff estructural contiene 0 cambios respecto a `2026-08-14T15:12:47.611Z`.
+- `scannedAt`: `2026-09-20T01:24:59.734Z`.
 
-Las cifras se reconcilian entre `schema.json`, `relationships.json`, `scan-summary.json`, `data-quality.json` y `latest-snapshot.json`. Un scan posterior puede cambiarlas legítimamente; siempre debe mostrarse su `scannedAt`.
+Las cifras se reconcilian entre `schema.json`, `relationships.json`, `scan-summary.json`, `data-quality.json` y `latest-snapshot.json`. Un scan posterior puede cambiarlas legítimamente; siempre debe mostrarse su `scannedAt`. El catálogo declarado no incluye el mapeo inválido `Samsara_ID` → `WD.FB`: el kit lo afirma, pero `FB` no existe en Ninox vivo.
 
 ## Hitos completados
 
@@ -32,9 +31,9 @@ Las cifras se reconcilian entre `schema.json`, `relationships.json`, `scan-summa
 
 ## Referencia no resuelta `UC`
 
-Tres campos `Trailers` apuntan al ID de tabla `UC`, pero ese ID no aparece en el schema ni en el catálogo de 163 tablas. Un GET directo devuelve `404 Not Found` y no se encontró metadata `rev` procedente de `UC`.
+Tres campos `Trailers` apuntan al ID de tabla `UC`, pero ese ID no aparece en el schema ni en el catálogo de 163 tablas. El scan vivo `2026-09-20T01:24:59.734Z` vuelve a registrar esas tres referencias. Un GET directo devuelve `404 Not Found` y no se encontró metadata `rev` procedente de `UC`.
 
-La única conclusión respaldada es `unresolved`. No se puede afirmar si la tabla fue eliminada, quedó inaccesible o corresponde a una condición interna de Ninox. La evidencia detallada está en [`p1-uc-diagnostic.md`](p1-uc-diagnostic.md).
+La única conclusión respaldada es `unresolved`. Permanece `Unknown`. No se puede afirmar si la tabla fue eliminada, quedó inaccesible o corresponde a una condición interna de Ninox. La evidencia detallada está en [`p1-uc-diagnostic.md`](p1-uc-diagnostic.md).
 
 ## Capacidades disponibles
 
@@ -70,8 +69,9 @@ La única conclusión respaldada es `unresolved`. No se puede afirmar si la tabl
 El `data-reporting-kit` descargado se procesó como fuente externa no confiable:
 
 - versión declarada: `3.2.0`;
-- 51 candidatos generados a partir de mapeos Ninox explícitos;
-- 2 mapeos ignorados por no cumplir el contrato o no existir en el schema actual;
+- `catalog:import` produjo 51 candidatos a partir de mapeos Ninox explícitos;
+- los 51 coinciden con IDs vivos del scan `2026-09-20T01:24:59.734Z`;
+- el kit sigue afirmando `Samsara_ID` → `WD.FB`, pero `FB` está ausente en Ninox vivo (afirmación falsa). `Truck_Samsara_Profile` existe como `WD.HK` (choice). No se inventa `FB`; el mapeo se eliminó de `config/declared-catalog.json`;
 - 51 decisiones continúan pendientes de revisión humana;
 - no se sobrescribieron anotaciones humanas ni se ejecutaron consultas.
 
