@@ -70,7 +70,6 @@
         { "reportField": "CPM", "tableId": "WD", "fieldId": "DA" },
         { "reportField": "Pay CPM after Miles", "tableId": "WD", "fieldId": "EA" },
         { "reportField": "owner", "tableId": "WD", "fieldId": "KB" },
-        { "reportField": "Samsara_ID", "tableId": "WD", "fieldId": "FB", "sensitive": true },
         { "reportField": "Dispatch_Name_", "tableId": "WD", "fieldId": "ZA" },
         { "reportField": "Temporal_Driver", "tableId": "WD", "fieldId": "UJ" }
       ]
@@ -142,8 +141,23 @@
     "mechanic_status (E.TA) is the kit's current shop-status field on TrucksDB. LTL_Shop yard status is a Work Plan / YardBoardPhase, not that Ninox field.",
     "Schedule_Teams is a live Ninox share used by reporting, not a mapped table ID in metadata.ts.",
     "Settlement Trucks 1/2/3 are owner-expense allocation labels in Facturacion, not separate Ninox tables.",
-    "LTL_Shop was repo-verified at apps/api/prisma/schema.prisma on main @ 0f560c1cafd12463cf95e24904af4f5da821e68d: runtime supabase, zero Ninox table IDs. Shop Prisma models and yard phases are not drawn as Ninox edges."
+    "LTL_Shop was repo-verified at apps/api/prisma/schema.prisma on main @ 0f560c1cafd12463cf95e24904af4f5da821e68d: runtime supabase, zero Ninox table IDs. Shop Prisma models and yard phases are not drawn as Ninox edges.",
+    "Live scan 2026-09-20: kit maps Samsara_ID to WD.FB but FB is absent; Truck_Samsara_Profile exists as WD.HK (choice). Do not invent FB.",
+    "Live scan 2026-09-20: three Trailer refs target table UC absent from the 163-table catalog (diagnose unresolved). Remains Unknown."
   ],
+  "scanVerifiedAt": "2026-09-20T01:24:59.734Z",
+  "scanSummary": {
+    "tableCount": 163,
+    "fieldCount": 5198,
+    "ninoxRelationshipCount": 109,
+    "unresolvedCount": 3,
+    "unresolvedTargetTableId": "UC",
+    "connectedTableCount": 94,
+    "isolatedTableCount": 69,
+    "shopMapCoverage": "25/25",
+    "scanErrorCount": 0,
+    "scannedAt": "2026-09-20T01:24:59.734Z"
+  },
   "shopApp": {
     "label": "Lightning Shop",
     "defaultBranch": "main",
