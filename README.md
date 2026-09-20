@@ -66,13 +66,24 @@ npm run scan
 
 El scan inspecciona las tablas, obtiene hasta 20 registros por tabla para análisis local, genera relaciones y calidad, y conserva un snapshot estructural. La muestra se limita localmente en la implementación actual.
 
-### Abrir el explorador
+### Abrir el Relationship Explorer en local
 
 ```sh
+npm install
 npm run dev
 ```
 
-Después abre [http://127.0.0.1:3000](http://127.0.0.1:3000). La interfaz permite navegar todas las tablas, documentar su significado y uso, revisar campos y relaciones, registrar consumidores, aprobar propuestas externas, buscar en todo el catálogo y exportar conocimiento seguro.
+Abre [http://127.0.0.1:3000](http://127.0.0.1:3000). No hace falta un scan previo: si faltan `output/schema.json` o `output/relationships.json`, la página muestra una alerta y **no se cae**. El overlay declarado sigue visible.
+
+**Fuente de verdad del overlay:** [`config/declared-catalog.json`](config/declared-catalog.json). Ahí viven los IDs Ninox verificados del reporting kit y las notas repo-verified de LTL_Shop. No se inventan IDs.
+
+Alcances en la barra lateral:
+
+- **All database** — todas las tablas del último scan local.
+- **TrucksDB area** — vecindario Shop de 1 hop alrededor de TrucksDB (`E`).
+- **Reporting kit** — solo las tablas declaradas: `TrucksDB (E)`, `DriverPay (WD)`, `DriversDB (Z)`, `Returns (S)`, `Facturacion (DE)`.
+
+La interfaz permite documentar significado y uso, revisar campos y relaciones, registrar consumidores, aprobar propuestas externas, buscar en el catálogo y exportar conocimiento seguro.
 
 ### Importar propuestas de `data-reporting-kit`
 
@@ -85,7 +96,7 @@ npm run catalog:import -- --path /absolute/path/to/data-reporting-kit
 
 Los candidatos no se convierten en conocimiento revisado hasta que una persona los acepte en **Usage & Review**. Repetir el comando conserva decisiones si el archivo fuente no cambió.
 
-El explorador también carga `config/declared-catalog.json`, un recorte verificado del kit (`TrucksDB (E)`, `DriverPay (WD)`, `DriversDB (Z)`, `Returns (S)`, `Facturacion (DE)`). El contrato de metadata del kit sigue en `SCHEMA_VERSION` 3.2.0; el changelog remoto iba en 3.8.23 al verificar. Esas tablas aparecen en el alcance **Reporting kit**. Las reglas de join del kit se muestran como notas externas y no se dibujan como relaciones `ref`/`rev` de Ninox. `fuel` permanece con ID de tabla `Unknown` porque el kit no declara uno. `LTL_Shop` está **repo-verified** en `main` @ `0f560c1cafd12463cf95e24904af4f5da821e68d` (`apps/api/prisma/schema.prisma`): runtime `supabase`, clave `truckNumber`, cero IDs de tabla Ninox; no se dibujan modelos Prisma ni fases de yard como aristas Ninox.
+El overlay de [`config/declared-catalog.json`](config/declared-catalog.json) es un recorte verificado del kit (`SCHEMA_VERSION` 3.2.0; changelog remoto 3.8.23 al verificar). Las reglas de join se muestran como notas externas y no se dibujan como `ref`/`rev` de Ninox. `fuel` permanece con ID de tabla `Unknown` porque el kit no declara uno. `LTL_Shop` está **repo-verified** en `main` @ `0f560c1cafd12463cf95e24904af4f5da821e68d` (`apps/api/prisma/schema.prisma`): runtime `supabase`, clave `truckNumber`, cero IDs de tabla Ninox; no se dibujan modelos Prisma ni fases de yard como aristas Ninox.
 
 ### Comandos principales
 

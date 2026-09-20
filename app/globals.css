@@ -38,6 +38,7 @@ button:focus-visible,input:focus-visible,select:focus-visible { outline:3px soli
 .quality-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
 .quality-heading h2 { margin-bottom:0; }
 .quality-status { color:var(--green); background:var(--mint); border-radius:999px; padding:8px 11px; font:500 10px 'DM Mono',monospace; letter-spacing:.08em; }
+.quality-status.missing { color:var(--amber); background:#fff5e4; }
 .quality-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:18px; }
 .quality-metrics > div { display:flex; flex-direction:column; min-width:0; padding:14px; background:#fbfcfb; border:1px solid var(--line); border-radius:7px; }
 .quality-metrics span { color:var(--muted); font:10px 'DM Mono',monospace; letter-spacing:.07em; }

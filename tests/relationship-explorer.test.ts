@@ -88,6 +88,8 @@ describe("relationship explorer SSR", () => {
     const html = renderToString(createElement(RelationshipExplorer, { data: { ...data, declared } }));
     expect(html).toContain("Declared reporting catalog");
     expect(html).toContain("Declared reporting catalog · schema");
+    expect(html).toContain("Source of truth:");
+    expect(html).toContain("config/declared-catalog.json");
     expect(html).toContain("3.2.0");
     expect(html).toContain("Use a LEFT JOIN from history to current trucks.");
     expect(html).toContain("GitHub 404");
@@ -150,6 +152,27 @@ describe("relationship explorer SSR", () => {
     expect(html).toContain("Broken Ninox reference");
   });
 
+  it("uses the declared table name when the local scan is missing", () => {
+    const declared = reconcileDeclaredCatalog({
+      source: { label: "Lightning Transportation Data Reporting Kit", schemaVersion: "3.2.0" },
+      tables: [{ report: "trucks", ninoxName: "TrucksDB", tableId: "E", grain: "One truck", fields: [] }],
+    });
+    const html = renderToString(createElement(RelationshipExplorer, { data: {
+      ...data,
+      tables: [],
+      relationships: [],
+      shopMap: { ...data.shopMap, anchor: { tableId: "E", tableName: "TrucksDB" }, nodes: [], edges: [] },
+      summary: { tableCount: 0, relationshipCount: 0, fieldCount: 0, sampledRecords: 0 },
+      quality: { ...data.quality, tables: { total: 0, connected: 0, isolated: 0, hypothesisOnly: 0 }, unresolvedReferences: [], scanErrors: [] },
+      loadIssue: "Local scan artifacts need attention: output/schema.json is missing. Run npm run scan or Rescan after configuring .env.local.",
+      declared,
+    } }));
+    expect(html).toContain("TrucksDB");
+    expect(html).toContain("NO LOCAL SCAN");
+    expect(html).toContain("Source of truth:");
+    expect(html).not.toContain("Unresolved table");
+  });
+
   it("renders empty and load-failure states without inventing tables", () => {
     const html = renderToString(createElement(RelationshipExplorer, { data: {
       ...data,
@@ -161,7 +184,11 @@ describe("relationship explorer SSR", () => {
     } }));
     expect(html).toContain("Scan artifacts need attention.");
     expect(html).toContain("output/schema.json is missing");
+    expect(html).toContain("NO LOCAL SCAN");
+    expect(html).toContain("No local Ninox scan");
+    expect(html).toContain("config/declared-catalog.json");
     expect(html).toContain("No tables loaded.");
+    expect(html).not.toContain("SCAN COMPLETE");
     expect(html).not.toContain("TrucksDB</b>");
   });
 
